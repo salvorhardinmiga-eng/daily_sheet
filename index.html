@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Daily Wages &amp; Operations Report</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="workspace-toolbar no-print">
+    <div class="toolbar-copy">
+      <h1>Daily Wages &amp; Operations Report</h1>
+      <p>
+        Fill the shop sheet on screen, save the draft locally, and print the final
+        sheet in exactly two A4 pages.
+      </p>
+    </div>
+
+    <div class="toolbar-actions">
+      <button type="button" data-action="today">Today</button>
+      <button type="button" data-action="save">Save Draft</button>
+      <button type="button" data-action="clear">Clear Draft</button>
+      <button type="button" data-action="export">Export JSON</button>
+      <label class="file-button">
+        Import JSON
+        <input id="import-file" type="file" accept="application/json">
+      </label>
+      <button type="button" class="print-button" data-action="print">Print</button>
+    </div>
+
+    <p class="toolbar-status" id="status">
+      Draft is ready. Use <strong>Print</strong> when the sheet is filled.
+    </p>
+  </header>
+
+  <main class="workspace">
+    <div class="sheet-stack" id="sheet-root"></div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
