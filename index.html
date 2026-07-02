@@ -11,13 +11,15 @@
     <div class="toolbar-copy">
       <h1>Daily Wages &amp; Operations Report</h1>
       <p>
-        Fill the shop sheet on screen, save the draft locally, and print the final
-        sheet in exactly two A4 pages.
+        Fill the shop sheet on screen, save the draft locally, and print the base
+        report in two A4 pages. Add extra Chillar pages only when you need them.
       </p>
     </div>
 
     <div class="toolbar-actions">
       <button type="button" data-action="today">Today</button>
+      <button type="button" data-action="add-page">Add Page</button>
+      <button type="button" data-action="remove-page">Remove Last Page</button>
       <button type="button" data-action="save">Save Draft</button>
       <button type="button" data-action="clear">Clear Draft</button>
       <button type="button" data-action="export">Export JSON</button>
@@ -29,7 +31,7 @@
     </div>
 
     <p class="toolbar-status" id="status">
-      Draft is ready. Use <strong>Print</strong> when the sheet is filled.
+      Draft is ready. Use Print when the sheet is filled.
     </p>
   </header>
 

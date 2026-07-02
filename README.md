@@ -23,6 +23,7 @@ Then open `http://localhost:4173`.
 ## What It Does
 
 - Keeps the printable layout locked to exactly `2` A4 pages
+- Lets you add extra A4 Chillar-table pages when a day needs more space
 - Preserves the same section order, row counts, and columns as the original sheet
 - Lets you type directly into every writable cell
 - Saves the current draft in the browser automatically
@@ -31,5 +32,5 @@ Then open `http://localhost:4173`.
 ## Print Notes
 
 - Use portrait A4
-- Browser print preview should show exactly `2` pages
+- Browser print preview should show exactly `2` pages unless you add extra pages
 - The control bar does not print

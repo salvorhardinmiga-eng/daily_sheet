@@ -13,7 +13,17 @@ const attendanceNames = [
   "RAUBHAI",
 ];
 
-const pages = [
+const chillerTableColumns = [
+  { label: "SR", width: "5%", kind: "sr" },
+  { label: "PRODUCT NAME", width: "29%", field: "product_name" },
+  { label: "TOTAL KG", width: "9%", field: "total_kg", align: "center" },
+  { label: "TOTAL BUNDLE", width: "10%", field: "total_bundle", align: "center" },
+  { label: "TOTAL PIECES", width: "10%", field: "total_pieces", align: "center" },
+  { label: "BUYER NAME / JAWAK NO", width: "29%", field: "buyer_name_jawak_no" },
+  { label: "EXPENSES", width: "8%", field: "expenses", align: "center" },
+];
+
+const basePages = [
   {
     key: "page-1",
     withHeader: true,
@@ -23,15 +33,7 @@ const pages = [
         title: "CHILLER JAWAK DETAILS",
         rowClass: "rows-30",
         rowCount: 30,
-        columns: [
-          { label: "SR", width: "5%", kind: "sr" },
-          { label: "PRODUCT NAME", width: "29%", field: "product_name" },
-          { label: "TOTAL KG", width: "9%", field: "total_kg", align: "center" },
-          { label: "TOTAL BUNDLE", width: "10%", field: "total_bundle", align: "center" },
-          { label: "TOTAL PIECES", width: "10%", field: "total_pieces", align: "center" },
-          { label: "BUYER NAME / JAWAK NO", width: "29%", field: "buyer_name_jawak_no" },
-          { label: "EXPENSES", width: "8%", field: "expenses", align: "center" },
-        ],
+        columns: chillerTableColumns,
       },
       {
         key: "transfer_entry",
@@ -135,10 +137,48 @@ const pages = [
   },
 ];
 
+let extraPageCount = 0;
 let fieldMap = new Map();
 let saveTimer = null;
 
 function init() {
+  bindToolbar();
+  bindFieldEvents();
+  renderSheet();
+  loadDraft();
+}
+
+function renderPages() {
+  return buildPages().map(renderPage).join("");
+}
+
+function buildPages() {
+  return [
+    ...basePages,
+    ...Array.from({ length: extraPageCount }, (_, index) => createExtraPage(index + 1)),
+  ];
+}
+
+function createExtraPage(index) {
+  return {
+    key: `extra-page-${index}`,
+    pageClass: "extra-table-page",
+    withHeader: false,
+    sections: [
+      {
+        key: getExtraPageKey(index),
+        rowClass: "rows-30",
+        rowCount: 30,
+        hideTitle: true,
+        ariaTitle: `Extra Chiller Page ${index}`,
+        sectionClass: "titleless-section extra-table-section",
+        columns: chillerTableColumns,
+      },
+    ],
+  };
+}
+
+function renderSheet(values = {}) {
   const root = document.getElementById("sheet-root");
   root.innerHTML = renderPages();
 
@@ -146,18 +186,13 @@ function init() {
     Array.from(document.querySelectorAll("[data-field]")).map((field) => [field.dataset.field, field]),
   );
 
-  bindToolbar();
-  bindFieldEvents();
-  loadDraft();
-}
-
-function renderPages() {
-  return pages.map(renderPage).join("");
+  applyValues(migrateLegacyValues(values));
+  refreshPageControls();
 }
 
 function renderPage(page) {
   return `
-    <section class="sheet-page">
+    <section class="sheet-page ${page.pageClass || ""}">
       ${page.withHeader ? renderHeader() : ""}
       <div class="sheet-sections">
         ${page.sections.map(renderSection).join("")}
@@ -202,10 +237,13 @@ function renderMetaField(label, fieldName) {
 function renderSection(section) {
   const rows = section.rows || Array.from({ length: section.rowCount }, () => ({}));
   const headerHtml = section.headerRows ? renderGroupedHeader(section) : renderSimpleHeader(section);
+  const titleHtml = section.hideTitle
+    ? ""
+    : `<h3 class="section-title">${escapeHtml(section.title)}</h3>`;
 
   return `
-    <section class="sheet-section">
-      <h3 class="section-title">${escapeHtml(section.title)}</h3>
+    <section class="sheet-section ${section.sectionClass || ""}">
+      ${titleHtml}
       <table class="sheet-table ${section.rowClass}">
         <colgroup>
           ${section.columns.map((column) => `<col style="width: ${column.width}">`).join("")}
@@ -272,7 +310,8 @@ function renderCell(section, row, index, column) {
   }
 
   const fieldName = `${section.key}.${index}.${column.field}`;
-  const fieldLabel = `${section.title} row ${index + 1} ${column.field.replaceAll("_", " ")}`;
+  const sectionLabel = section.ariaTitle || section.title || section.key.replaceAll("_", " ");
+  const fieldLabel = `${sectionLabel} row ${index + 1} ${column.field.replaceAll("_", " ")}`;
   const classNames = ["cell-input"];
 
   if (column.align) {
@@ -296,6 +335,8 @@ function renderCell(section, row, index, column) {
 
 function bindToolbar() {
   document.querySelector('[data-action="today"]').addEventListener("click", applyToday);
+  document.querySelector('[data-action="add-page"]').addEventListener("click", addPage);
+  document.querySelector('[data-action="remove-page"]').addEventListener("click", removeLastPage);
   document.querySelector('[data-action="save"]').addEventListener("click", saveDraft);
   document.querySelector('[data-action="clear"]').addEventListener("click", clearDraft);
   document.querySelector('[data-action="export"]').addEventListener("click", exportDraft);
@@ -356,6 +397,7 @@ function scheduleSave() {
 function saveDraft() {
   const payload = {
     values: collectFormValues(),
+    extraPageCount,
     savedAt: new Date().toISOString(),
   };
 
@@ -373,7 +415,10 @@ function loadDraft() {
 
   try {
     const payload = JSON.parse(raw);
-    applyValues(migrateLegacyValues(payload.values || payload));
+    extraPageCount = normalizeExtraPageCount(
+      payload.extraPageCount ?? inferExtraPageCount(payload.values || payload),
+    );
+    renderSheet(payload.values || payload);
     syncDayWithDate(getFieldValue(DATE_FIELD));
 
     if (payload.savedAt) {
@@ -396,9 +441,8 @@ function clearDraft() {
     return;
   }
 
-  fieldMap.forEach((field) => {
-    field.value = "";
-  });
+  extraPageCount = 0;
+  renderSheet();
   localStorage.removeItem(STORAGE_KEY);
   setStatus("Sheet cleared. You can start a new day now.", "success");
 }
@@ -406,6 +450,7 @@ function clearDraft() {
 function exportDraft() {
   const payload = {
     values: collectFormValues(),
+    extraPageCount,
     exportedAt: new Date().toISOString(),
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
@@ -431,7 +476,10 @@ async function importDraft(event) {
     const text = await file.text();
     const payload = JSON.parse(text);
 
-    applyValues(migrateLegacyValues(payload.values || payload));
+    extraPageCount = normalizeExtraPageCount(
+      payload.extraPageCount ?? inferExtraPageCount(payload.values || payload),
+    );
+    renderSheet(payload.values || payload);
     saveDraft();
     setStatus(`Imported draft from ${file.name}.`, "success");
   } catch (error) {
@@ -446,6 +494,77 @@ function collectFormValues() {
   return Object.fromEntries(
     Array.from(fieldMap.entries()).map(([name, field]) => [name, field.value]),
   );
+}
+
+function addPage() {
+  const values = collectFormValues();
+  extraPageCount += 1;
+  renderSheet(values);
+  saveDraft();
+  setStatus(`Added extra page ${extraPageCount}.`, "success");
+}
+
+function removeLastPage() {
+  if (extraPageCount === 0) {
+    setStatus("There are no extra pages to remove.", "error");
+    return;
+  }
+
+  const values = collectFormValues();
+  const lastPageIndex = extraPageCount;
+  const pageKey = `${getExtraPageKey(lastPageIndex)}.`;
+  const hasPageData = Object.entries(values).some(
+    ([name, value]) => name.startsWith(pageKey) && String(value).trim() !== "",
+  );
+
+  if (
+    hasPageData &&
+    !window.confirm("Remove the last added page? Its entered values will be deleted.")
+  ) {
+    return;
+  }
+
+  Object.keys(values)
+    .filter((name) => name.startsWith(pageKey))
+    .forEach((name) => {
+      delete values[name];
+    });
+
+  extraPageCount -= 1;
+  renderSheet(values);
+  saveDraft();
+  setStatus(`Removed extra page ${lastPageIndex}.`, "success");
+}
+
+function refreshPageControls() {
+  const removeButton = document.querySelector('[data-action="remove-page"]');
+
+  if (removeButton) {
+    removeButton.disabled = extraPageCount === 0;
+  }
+}
+
+function inferExtraPageCount(values) {
+  const matches = Object.keys(values)
+    .map((name) => name.match(/^extra_chiller_page_(\d+)\./))
+    .filter(Boolean)
+    .map((match) => Number(match[1]));
+
+  return matches.length ? Math.max(...matches) : 0;
+}
+
+function normalizeExtraPageCount(value) {
+  const count = Number(value);
+
+  if (!Number.isFinite(count) || count < 0) {
+    return 0;
+  }
+
+  return Math.floor(count);
+}
+
+function getExtraPageKey(index) {
+  return `extra_chiller_page_${index}`;
 }
 
 function migrateLegacyValues(values) {
