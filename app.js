@@ -1,6 +1,7 @@
 const STORAGE_KEY = "daily-sheet-draft-v1";
 const DATE_FIELD = "meta.date";
 const DAY_FIELD = "meta.day";
+const EXTRA_PAGE_ROW_COUNT = 47;
 
 const attendanceNames = [
   "JAYESH",
@@ -168,7 +169,7 @@ function createExtraPage(index) {
       {
         key: getExtraPageKey(index),
         rowClass: "rows-30",
-        rowCount: 30,
+        rowCount: EXTRA_PAGE_ROW_COUNT,
         hideTitle: true,
         ariaTitle: `Extra Chiller Page ${index}`,
         sectionClass: "titleless-section extra-table-section",
