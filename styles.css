@@ -352,6 +352,14 @@ label {
   flex: 1;
 }
 
+.extra-table-page .sheet-table {
+  height: 100%;
+}
+
+.extra-table-page .rows-30 {
+  --row-height: 8.95mm;
+}
+
 @media (max-width: 960px) {
   .workspace-toolbar {
     position: static;
