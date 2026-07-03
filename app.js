@@ -1,5 +1,6 @@
 const STORAGE_KEY = "daily-sheet-draft-v1";
 const PRODUCT_STORAGE_KEY = "daily-sheet-products-v1";
+const PRODUCT_CATALOG_OVERRIDE_KEY = "daily-sheet-product-catalog-v1";
 const DATE_FIELD = "meta.date";
 const DAY_FIELD = "meta.day";
 const EXTRA_PAGE_ROW_COUNT = 47;
@@ -680,6 +681,12 @@ function bindToolbar() {
   document.querySelector('[data-action="clear"]').addEventListener("click", clearDraft);
   document.querySelector('[data-action="export"]').addEventListener("click", exportDraft);
   document.querySelector('[data-action="add-product"]').addEventListener("click", addProductFromToolbar);
+  document.querySelector('[data-action="edit-products"]').addEventListener("click", openProductCatalogEditor);
+  document.querySelectorAll('[data-action="close-product-editor"]').forEach((button) => {
+    button.addEventListener("click", closeProductCatalogEditor);
+  });
+  document.querySelector('[data-action="save-products"]').addEventListener("click", saveProductCatalogEditor);
+  document.querySelector('[data-action="reset-products"]').addEventListener("click", resetProductCatalogEditor);
   document.querySelector('[data-action="print"]').addEventListener("click", () => {
     saveDraft();
     window.print();
@@ -692,6 +699,11 @@ function bindToolbar() {
     }
   });
   window.addEventListener("beforeprint", saveDraft);
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeProductCatalogEditor();
+    }
+  });
 }
 
 function bindFieldEvents() {
@@ -755,6 +767,7 @@ function scheduleSave() {
 function saveDraft() {
   const payload = {
     values: collectFormValues(),
+    productCatalog,
     customProducts: customProductCatalog,
     extraPageCount,
     savedAt: new Date().toISOString(),
@@ -774,7 +787,7 @@ function loadDraft() {
 
   try {
     const payload = JSON.parse(raw);
-    hydrateCustomProducts(payload.customProducts);
+    hydrateImportedProductState(payload);
     extraPageCount = normalizeExtraPageCount(
       payload.extraPageCount ?? inferExtraPageCount(payload.values || payload),
     );
@@ -810,6 +823,7 @@ function clearDraft() {
 function exportDraft() {
   const payload = {
     values: collectFormValues(),
+    productCatalog,
     customProducts: customProductCatalog,
     extraPageCount,
     exportedAt: new Date().toISOString(),
@@ -837,7 +851,7 @@ async function importDraft(event) {
     const text = await file.text();
     const payload = JSON.parse(text);
 
-    hydrateCustomProducts(payload.customProducts);
+    hydrateImportedProductState(payload);
     extraPageCount = normalizeExtraPageCount(
       payload.extraPageCount ?? inferExtraPageCount(payload.values || payload),
     );
@@ -907,9 +921,38 @@ function refreshPageControls() {
 }
 
 function loadProductCatalog() {
-  baseProductCatalog = PRODUCT_CATALOG_SEED;
-  customProductCatalog = loadSavedCustomProducts();
+  const savedCatalog = loadSavedProductCatalogOverride();
+
+  if (savedCatalog.length > 0) {
+    baseProductCatalog = savedCatalog;
+    customProductCatalog = [];
+  } else {
+    const legacyCustomProducts = loadSavedCustomProducts();
+
+    baseProductCatalog = uniqueProducts([...PRODUCT_CATALOG_SEED, ...legacyCustomProducts]);
+    customProductCatalog = [];
+
+    if (legacyCustomProducts.length > 0) {
+      persistProductCatalogOverride();
+    }
+  }
+
   rebuildProductCatalog();
+}
+
+function loadSavedProductCatalogOverride() {
+  try {
+    const raw = localStorage.getItem(PRODUCT_CATALOG_OVERRIDE_KEY);
+
+    if (!raw) {
+      return [];
+    }
+
+    return normalizeProductArray(JSON.parse(raw));
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
 }
 
 function loadSavedCustomProducts() {
@@ -932,11 +975,33 @@ function hydrateCustomProducts(importedProducts) {
     return;
   }
 
-  customProductCatalog = normalizeProductArray([
+  baseProductCatalog = normalizeProductArray([
+    ...baseProductCatalog,
     ...customProductCatalog,
     ...importedProducts,
   ]);
-  persistCustomProducts();
+  customProductCatalog = [];
+  persistProductCatalogOverride();
+  rebuildProductCatalog();
+}
+
+function hydrateImportedProductState(payload) {
+  if (Array.isArray(payload.productCatalog) && payload.productCatalog.length > 0) {
+    hydrateProductCatalog(payload.productCatalog);
+    return;
+  }
+
+  hydrateCustomProducts(payload.customProducts);
+}
+
+function hydrateProductCatalog(importedProducts) {
+  if (!Array.isArray(importedProducts) || importedProducts.length === 0) {
+    return;
+  }
+
+  baseProductCatalog = normalizeProductArray(importedProducts);
+  customProductCatalog = [];
+  persistProductCatalogOverride();
   rebuildProductCatalog();
 }
 
@@ -992,16 +1057,86 @@ function addProductFromToolbar() {
     return;
   }
 
-  customProductCatalog = uniqueProducts([...customProductCatalog, productName]);
-  persistCustomProducts();
+  baseProductCatalog = uniqueProducts([...productCatalog, productName]);
+  customProductCatalog = [];
+  persistProductCatalogOverride();
   rebuildProductCatalog();
   input.value = "";
   saveDraft();
   setStatus(`${productName} added to the product list.`, "success");
 }
 
-function persistCustomProducts() {
-  localStorage.setItem(PRODUCT_STORAGE_KEY, JSON.stringify(customProductCatalog));
+function persistProductCatalogOverride() {
+  localStorage.setItem(PRODUCT_CATALOG_OVERRIDE_KEY, JSON.stringify(baseProductCatalog));
+  localStorage.removeItem(PRODUCT_STORAGE_KEY);
+}
+
+function openProductCatalogEditor() {
+  const shell = document.getElementById("product-editor-shell");
+  const editor = document.getElementById("product-editor-text");
+
+  if (!shell || !(editor instanceof HTMLTextAreaElement)) {
+    return;
+  }
+
+  editor.value = productCatalog.join("\n");
+  shell.classList.remove("hidden");
+  shell.setAttribute("aria-hidden", "false");
+  editor.focus();
+  editor.setSelectionRange(0, 0);
+}
+
+function closeProductCatalogEditor() {
+  const shell = document.getElementById("product-editor-shell");
+
+  if (!shell || shell.classList.contains("hidden")) {
+    return;
+  }
+
+  shell.classList.add("hidden");
+  shell.setAttribute("aria-hidden", "true");
+}
+
+function saveProductCatalogEditor() {
+  const editor = document.getElementById("product-editor-text");
+
+  if (!(editor instanceof HTMLTextAreaElement)) {
+    return;
+  }
+
+  const nextCatalog = normalizeProductArray(editor.value.split(/\r?\n/));
+
+  if (nextCatalog.length === 0) {
+    setStatus("Add at least one product name before saving the list.", "error");
+    return;
+  }
+
+  baseProductCatalog = nextCatalog;
+  customProductCatalog = [];
+  persistProductCatalogOverride();
+  rebuildProductCatalog();
+  saveDraft();
+  closeProductCatalogEditor();
+  setStatus(`Saved ${productCatalog.length} product names for this browser.`, "success");
+}
+
+function resetProductCatalogEditor() {
+  const confirmed = window.confirm(
+    "Reset the product names back to the updated bundled list?",
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  baseProductCatalog = PRODUCT_CATALOG_SEED;
+  customProductCatalog = [];
+  localStorage.removeItem(PRODUCT_CATALOG_OVERRIDE_KEY);
+  localStorage.removeItem(PRODUCT_STORAGE_KEY);
+  rebuildProductCatalog();
+  openProductCatalogEditor();
+  saveDraft();
+  setStatus("Product names reset to the updated bundled list.", "success");
 }
 
 function normalizeProductArray(values) {

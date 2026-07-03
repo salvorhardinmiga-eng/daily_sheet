@@ -41,6 +41,7 @@
         aria-label="Add product to list"
       >
       <button type="button" data-action="add-product">Add Product</button>
+      <button type="button" data-action="edit-products">Edit Product Names</button>
       <p class="product-tools-note" id="product-count">Product list is starting...</p>
     </div>
 
@@ -52,6 +53,38 @@
   <main class="workspace">
     <div class="sheet-stack" id="sheet-root"></div>
   </main>
+
+  <div class="modal-shell no-print hidden" id="product-editor-shell" aria-hidden="true">
+    <div class="modal-backdrop" data-action="close-product-editor"></div>
+    <section
+      class="modal-panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="product-editor-title"
+    >
+      <div class="modal-header">
+        <div>
+          <h2 id="product-editor-title">Edit Product Names</h2>
+          <p>Keep one product on each line. Save when the list looks right.</p>
+        </div>
+        <button type="button" class="modal-close" data-action="close-product-editor">
+          Close
+        </button>
+      </div>
+
+      <textarea
+        id="product-editor-text"
+        class="product-editor-text"
+        spellcheck="false"
+        aria-label="Edit product names"
+      ></textarea>
+
+      <div class="modal-actions">
+        <button type="button" data-action="reset-products">Reset to Updated Names</button>
+        <button type="button" data-action="save-products">Save Product Names</button>
+      </div>
+    </section>
+  </div>
 
   <datalist id="product-options"></datalist>
 
