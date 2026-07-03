@@ -30,6 +30,20 @@
       <button type="button" class="print-button" data-action="print">Print</button>
     </div>
 
+    <div class="product-tools">
+      <input
+        id="new-product-input"
+        class="product-tools-input"
+        type="text"
+        placeholder="Add product to list"
+        autocomplete="off"
+        spellcheck="false"
+        aria-label="Add product to list"
+      >
+      <button type="button" data-action="add-product">Add Product</button>
+      <p class="product-tools-note" id="product-count">Loading product list...</p>
+    </div>
+
     <p class="toolbar-status" id="status">
       Draft is ready. Use Print when the sheet is filled.
     </p>
@@ -38,6 +52,8 @@
   <main class="workspace">
     <div class="sheet-stack" id="sheet-root"></div>
   </main>
+
+  <datalist id="product-options"></datalist>
 
   <script src="app.js"></script>
 </body>

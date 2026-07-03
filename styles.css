@@ -124,6 +124,34 @@ label {
   font-size: 0.95rem;
 }
 
+.product-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.product-tools-input {
+  min-width: min(360px, 100%);
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid rgba(31, 41, 55, 0.14);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+}
+
+.product-tools-input:focus {
+  outline: 2px solid var(--focus);
+  border-color: rgba(21, 150, 207, 0.4);
+}
+
+.product-tools-note {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
 .toolbar-status.error {
   color: #b91c1c;
 }
@@ -359,6 +387,14 @@ label {
 
   .workspace {
     padding-top: 16px;
+  }
+
+  .product-tools {
+    align-items: stretch;
+  }
+
+  .product-tools-input {
+    min-width: 100%;
   }
 
   .sheet-stack {

@@ -1,7 +1,10 @@
 const STORAGE_KEY = "daily-sheet-draft-v1";
+const PRODUCT_STORAGE_KEY = "daily-sheet-products-v1";
 const DATE_FIELD = "meta.date";
 const DAY_FIELD = "meta.day";
 const EXTRA_PAGE_ROW_COUNT = 47;
+const PRODUCT_DATALIST_ID = "product-options";
+const MAX_PRODUCT_SUGGESTIONS = 80;
 
 const attendanceNames = [
   "JAYESH",
@@ -16,7 +19,7 @@ const attendanceNames = [
 
 const chillerTableColumns = [
   { label: "SR", width: "5%", kind: "sr" },
-  { label: "PRODUCT NAME", width: "29%", field: "product_name" },
+  { label: "PRODUCT NAME", width: "29%", field: "product_name", productCatalog: true },
   { label: "TOTAL KG", width: "9%", field: "total_kg", align: "center" },
   { label: "TOTAL BUNDLE", width: "10%", field: "total_bundle", align: "center" },
   { label: "TOTAL PIECES", width: "10%", field: "total_pieces", align: "center" },
@@ -43,7 +46,7 @@ const basePages = [
         rowCount: 4,
         columns: [
           { label: "SR", width: "5%", kind: "sr" },
-          { label: "PRODUCT", width: "45%", field: "product" },
+          { label: "PRODUCT", width: "45%", field: "product", productCatalog: true },
           {
             label: "QUANTITY (WHOLESALE)",
             width: "25%",
@@ -79,7 +82,7 @@ const basePages = [
         rowCount: 10,
         columns: [
           { label: "SR", width: "5%", kind: "sr" },
-          { label: "PRODUCT NAME", width: "29%", field: "product_name" },
+          { label: "PRODUCT NAME", width: "29%", field: "product_name", productCatalog: true },
           { label: "TOTAL KG", width: "9%", field: "total_kg", align: "center" },
           { label: "TOTAL BUNDLE", width: "10%", field: "total_bundle", align: "center" },
           { label: "TOTAL PIECES", width: "10%", field: "total_pieces", align: "center" },
@@ -98,7 +101,7 @@ const basePages = [
         rowCount: 10,
         columns: [
           { label: "SR", width: "5%", kind: "sr" },
-          { label: "PRODUCT NAME", width: "29%", field: "product_name" },
+          { label: "PRODUCT NAME", width: "29%", field: "product_name", productCatalog: true },
           { label: "TOTAL KG", width: "9%", field: "total_kg", align: "center" },
           { label: "TOTAL BUNDLE", width: "10%", field: "total_bundle", align: "center" },
           { label: "TOTAL PIECES", width: "10%", field: "total_pieces", align: "center" },
@@ -126,7 +129,7 @@ const basePages = [
         columns: [
           { width: "5%", kind: "sr" },
           { width: "15%", field: "lot_no", align: "center" },
-          { width: "36%", field: "product" },
+          { width: "36%", field: "product", productCatalog: true },
           { width: "6%", field: "majuri_1", align: "center" },
           { width: "6%", field: "majuri_2", align: "center" },
           { width: "6%", field: "majuri_3", align: "center" },
@@ -139,14 +142,19 @@ const basePages = [
 ];
 
 let extraPageCount = 0;
+let baseProductCatalog = [];
+let customProductCatalog = [];
+let productCatalog = [];
 let fieldMap = new Map();
 let saveTimer = null;
 
-function init() {
+async function init() {
+  await loadProductCatalog();
   bindToolbar();
   bindFieldEvents();
   renderSheet();
   loadDraft();
+  renderProductSuggestionList();
 }
 
 function renderPages() {
@@ -329,6 +337,7 @@ function renderCell(section, row, index, column) {
         spellcheck="false"
         aria-label="${escapeHtml(fieldLabel)}"
         data-field="${fieldName}"
+        ${column.productCatalog ? `data-product-field="true" list="${PRODUCT_DATALIST_ID}"` : ""}
       >
     </td>
   `;
@@ -341,11 +350,18 @@ function bindToolbar() {
   document.querySelector('[data-action="save"]').addEventListener("click", saveDraft);
   document.querySelector('[data-action="clear"]').addEventListener("click", clearDraft);
   document.querySelector('[data-action="export"]').addEventListener("click", exportDraft);
+  document.querySelector('[data-action="add-product"]').addEventListener("click", addProductFromToolbar);
   document.querySelector('[data-action="print"]').addEventListener("click", () => {
     saveDraft();
     window.print();
   });
   document.getElementById("import-file").addEventListener("change", importDraft);
+  document.getElementById("new-product-input").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      addProductFromToolbar();
+    }
+  });
   window.addEventListener("beforeprint", saveDraft);
 }
 
@@ -361,7 +377,19 @@ function bindFieldEvents() {
       syncDayWithDate(target.value);
     }
 
+    if (target.dataset.productField === "true") {
+      renderProductSuggestionList(target.value);
+    }
+
     scheduleSave();
+  });
+
+  document.addEventListener("focusin", (event) => {
+    const target = event.target;
+
+    if (target instanceof HTMLInputElement && target.dataset.productField === "true") {
+      renderProductSuggestionList(target.value);
+    }
   });
 }
 
@@ -398,6 +426,7 @@ function scheduleSave() {
 function saveDraft() {
   const payload = {
     values: collectFormValues(),
+    customProducts: customProductCatalog,
     extraPageCount,
     savedAt: new Date().toISOString(),
   };
@@ -416,6 +445,7 @@ function loadDraft() {
 
   try {
     const payload = JSON.parse(raw);
+    hydrateCustomProducts(payload.customProducts);
     extraPageCount = normalizeExtraPageCount(
       payload.extraPageCount ?? inferExtraPageCount(payload.values || payload),
     );
@@ -451,6 +481,7 @@ function clearDraft() {
 function exportDraft() {
   const payload = {
     values: collectFormValues(),
+    customProducts: customProductCatalog,
     extraPageCount,
     exportedAt: new Date().toISOString(),
   };
@@ -477,6 +508,7 @@ async function importDraft(event) {
     const text = await file.text();
     const payload = JSON.parse(text);
 
+    hydrateCustomProducts(payload.customProducts);
     extraPageCount = normalizeExtraPageCount(
       payload.extraPageCount ?? inferExtraPageCount(payload.values || payload),
     );
@@ -543,6 +575,153 @@ function refreshPageControls() {
   if (removeButton) {
     removeButton.disabled = extraPageCount === 0;
   }
+}
+
+async function loadProductCatalog() {
+  baseProductCatalog = await loadBaseProductsFromNote();
+  customProductCatalog = loadSavedCustomProducts();
+  rebuildProductCatalog();
+}
+
+async function loadBaseProductsFromNote() {
+  try {
+    const response = await fetch("note.txt", { cache: "no-store" });
+
+    if (!response.ok) {
+      throw new Error(`Failed to load note.txt: ${response.status}`);
+    }
+
+    return normalizeProductList(await response.text());
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
+}
+
+function loadSavedCustomProducts() {
+  try {
+    const raw = localStorage.getItem(PRODUCT_STORAGE_KEY);
+
+    if (!raw) {
+      return [];
+    }
+
+    return normalizeProductArray(JSON.parse(raw));
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
+}
+
+function hydrateCustomProducts(importedProducts) {
+  if (!Array.isArray(importedProducts) || importedProducts.length === 0) {
+    return;
+  }
+
+  customProductCatalog = normalizeProductArray([
+    ...customProductCatalog,
+    ...importedProducts,
+  ]);
+  persistCustomProducts();
+  rebuildProductCatalog();
+}
+
+function rebuildProductCatalog() {
+  productCatalog = uniqueProducts([...baseProductCatalog, ...customProductCatalog]);
+  renderProductSuggestionList();
+  refreshProductCount();
+}
+
+function renderProductSuggestionList(query = "") {
+  const datalist = document.getElementById(PRODUCT_DATALIST_ID);
+
+  if (!datalist) {
+    return;
+  }
+
+  const normalizedQuery = normalizeProductName(query);
+  const suggestions = normalizedQuery
+    ? productCatalog.filter((item) => item.includes(normalizedQuery))
+    : productCatalog;
+
+  datalist.innerHTML = suggestions
+    .slice(0, MAX_PRODUCT_SUGGESTIONS)
+    .map((item) => `<option value="${escapeHtml(item)}"></option>`)
+    .join("");
+}
+
+function refreshProductCount() {
+  const countNode = document.getElementById("product-count");
+
+  if (countNode) {
+    countNode.textContent = `${productCatalog.length} products ready for search`;
+  }
+}
+
+function addProductFromToolbar() {
+  const input = document.getElementById("new-product-input");
+
+  if (!(input instanceof HTMLInputElement)) {
+    return;
+  }
+
+  const productName = normalizeProductName(input.value);
+
+  if (!productName) {
+    setStatus("Type a product name before adding it.", "error");
+    return;
+  }
+
+  if (productCatalog.includes(productName)) {
+    input.value = "";
+    setStatus(`${productName} is already in the product list.`, "success");
+    return;
+  }
+
+  customProductCatalog = uniqueProducts([...customProductCatalog, productName]);
+  persistCustomProducts();
+  rebuildProductCatalog();
+  input.value = "";
+  saveDraft();
+  setStatus(`${productName} added to the product list.`, "success");
+}
+
+function persistCustomProducts() {
+  localStorage.setItem(PRODUCT_STORAGE_KEY, JSON.stringify(customProductCatalog));
+}
+
+function normalizeProductList(rawText) {
+  return normalizeProductArray(rawText.split(/\r?\n/));
+}
+
+function normalizeProductArray(values) {
+  return uniqueProducts(
+    values
+      .map((value) => normalizeProductName(value))
+      .filter(Boolean),
+  );
+}
+
+function uniqueProducts(values) {
+  const seen = new Set();
+  const result = [];
+
+  for (const value of values) {
+    const key = value.toUpperCase();
+
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    result.push(value);
+  }
+
+  return result;
+}
+
+function normalizeProductName(value) {
+  return String(value).replace(/\s+/g, " ").trim().toUpperCase();
 }
 
 function inferExtraPageCount(values) {

@@ -25,6 +25,8 @@ Then open `http://localhost:4173`.
 - Keeps the printable layout locked to exactly `2` A4 pages
 - Lets you add extra A4 Chillar-table pages when a day needs more space
 - Preserves the same section order, row counts, and columns as the original sheet
+- Adds searchable product autocomplete everywhere a product column appears
+- Lets you save extra product names locally from the app for later reuse
 - Lets you type directly into every writable cell
 - Saves the current draft in the browser automatically
 - Supports JSON export/import if you want to keep separate day records
