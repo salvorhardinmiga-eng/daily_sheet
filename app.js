@@ -1272,6 +1272,7 @@ async function sharePdf() {
     return;
   }
 
+  const reportDate = ensureShareDate();
   saveDraft();
   shareButton.disabled = true;
   shareButton.textContent = "Making PDF...";
@@ -1285,11 +1286,11 @@ async function sharePdf() {
       pdfBlob = await createPdfBlob();
     }
 
-    const dateValue = sanitizeForFilename(getFieldValue(getActiveDateFieldName()) || "report");
+    const dateValue = sanitizeForFilename(reportDate);
     const sheetLabel = sanitizeForFilename(getSheetDefinition(currentSheetKey).label.toLowerCase());
     const filename = `${sheetLabel}-${dateValue}.pdf`;
     const pdfFile = new File([pdfBlob], filename, { type: "application/pdf" });
-    const shareText = `${getSheetDefinition(currentSheetKey).label} for ${dateValue}`;
+    const shareText = `${getSheetDefinition(currentSheetKey).label} for ${reportDate}`;
 
     if (navigator.canShare?.({ files: [pdfFile] })) {
       await navigator.share({
@@ -1313,11 +1314,12 @@ async function sharePdf() {
     console.error(error);
 
     if (pdfBlob) {
-      const dateValue = sanitizeForFilename(getFieldValue(getActiveDateFieldName()) || "report");
+      const reportDate = ensureShareDate();
+      const dateValue = sanitizeForFilename(reportDate);
       const sheetLabel = sanitizeForFilename(getSheetDefinition(currentSheetKey).label.toLowerCase());
 
       downloadBlob(pdfBlob, `${sheetLabel}-${dateValue}.pdf`);
-      openWhatsAppFallback(`${getSheetDefinition(currentSheetKey).label} for ${dateValue}`);
+      openWhatsAppFallback(`${getSheetDefinition(currentSheetKey).label} for ${reportDate}`);
       setStatus("Your phone blocked direct file sharing, so the PDF was downloaded for WhatsApp.", "success");
       return;
     }
@@ -1328,6 +1330,24 @@ async function sharePdf() {
     shareButton.disabled = false;
     shareButton.textContent = "Share PDF / WhatsApp";
   }
+}
+
+function ensureShareDate() {
+  const dateField = getActiveDateFieldName();
+  const existingDate = getFieldValue(dateField).trim();
+
+  if (existingDate) {
+    return existingDate;
+  }
+
+  const today = isDailySheet() ? formatDate(new Date()) : formatMarketDate(new Date());
+  setFieldValue(dateField, today);
+
+  if (isDailySheet()) {
+    syncDayWithDate(today);
+  }
+
+  return today;
 }
 
 function openWhatsAppFallback(shareText) {
@@ -1409,7 +1429,7 @@ async function createPdfBlob() {
       const canvas = await window.html2canvas(page, {
         backgroundColor: "#ffffff",
         logging: false,
-        scale: 2,
+        scale: getPdfRenderScale(),
         useCORS: true,
       });
 
@@ -1424,6 +1444,11 @@ async function createPdfBlob() {
   } finally {
     document.body.classList.remove("is-pdf-export");
   }
+}
+
+function getPdfRenderScale() {
+  // Smaller canvases prevent Android browsers from running out of memory on multi-page sheets.
+  return window.matchMedia("(max-width: 960px)").matches ? 1.25 : 2;
 }
 
 function downloadBlob(blob, filename) {
@@ -1715,16 +1740,13 @@ function getHydratedSheetValues(definition, savedValues) {
     return savedValues || {};
   }
 
-  const values = savedValues || {};
-  const hasSavedContent = Object.values(values).some((value) => String(value).trim() !== "");
-
-  if (!hasSavedContent) {
-    return { ...(definition.defaultValues || {}) };
-  }
+  const enteredValues = Object.fromEntries(
+    Object.entries(savedValues || {}).filter(([, value]) => String(value).trim() !== ""),
+  );
 
   return {
     ...(definition.defaultValues || {}),
-    ...values,
+    ...enteredValues,
   };
 }
 
