@@ -780,7 +780,7 @@ function renderMarketSheet(definition) {
             </tr>
           </thead>
           <tbody>
-            ${definition.rows.map(renderMarketRow).join("")}
+            ${getMarketRows(definition).map(renderMarketRow).join("")}
           </tbody>
         </table>
 
@@ -797,6 +797,21 @@ function renderMarketSheet(definition) {
       </div>
     </section>
   `;
+}
+
+function getMarketRows(definition) {
+  const extraRows = Array.from(
+    { length: getCurrentSheetState().extraRowCount || 0 },
+    (_, index) => ({
+      kind: "item",
+      descriptionField: `${definition.key}.extra_rows.${index}.description`,
+      rateField: `${definition.key}.extra_rows.${index}.rate`,
+      termsField: `${definition.key}.extra_rows.${index}.terms`,
+      isExtra: true,
+    }),
+  );
+
+  return [...definition.rows, ...extraRows];
 }
 
 function renderMarketRow(row) {
@@ -977,6 +992,8 @@ function bindToolbar() {
   document.querySelector('[data-action="today"]').addEventListener("click", applyToday);
   document.querySelector('[data-action="add-page"]').addEventListener("click", addPage);
   document.querySelector('[data-action="remove-page"]').addEventListener("click", removeLastPage);
+  document.querySelector('[data-action="add-row"]').addEventListener("click", addMarketRow);
+  document.querySelector('[data-action="remove-row"]').addEventListener("click", removeLastMarketRow);
   document.querySelector('[data-action="save"]').addEventListener("click", saveDraft);
   document.querySelector('[data-action="clear"]').addEventListener("click", clearDraft);
   document.querySelector('[data-action="export"]').addEventListener("click", exportDraft);
@@ -1238,9 +1255,59 @@ function removeLastPage() {
   setStatus(`Removed extra page ${lastPageIndex}.`, "success");
 }
 
+function addMarketRow() {
+  if (isDailySheet()) {
+    return;
+  }
+
+  const values = collectFormValues();
+  const state = getCurrentSheetState();
+  state.extraRowCount = (state.extraRowCount || 0) + 1;
+  renderActiveSheet(values);
+  saveDraft();
+  setStatus(`Added extra row ${state.extraRowCount}.`, "success");
+}
+
+function removeLastMarketRow() {
+  if (isDailySheet()) {
+    return;
+  }
+
+  const state = getCurrentSheetState();
+  const extraRowCount = state.extraRowCount || 0;
+
+  if (extraRowCount === 0) {
+    setStatus("There are no extra rows to remove.", "error");
+    return;
+  }
+
+  const values = collectFormValues();
+  const rowPrefix = `${currentSheetKey}.extra_rows.${extraRowCount - 1}.`;
+  const hasRowData = Object.entries(values).some(
+    ([name, value]) => name.startsWith(rowPrefix) && String(value).trim() !== "",
+  );
+
+  if (hasRowData && !window.confirm("Remove the last added row? Its entered values will be deleted.")) {
+    return;
+  }
+
+  Object.keys(values)
+    .filter((name) => name.startsWith(rowPrefix))
+    .forEach((name) => {
+      delete values[name];
+    });
+
+  state.extraRowCount = extraRowCount - 1;
+  renderActiveSheet(values);
+  saveDraft();
+  setStatus(`Removed extra row ${extraRowCount}.`, "success");
+}
+
 function refreshPageControls() {
   const removeButton = document.querySelector('[data-action="remove-page"]');
   const addButton = document.querySelector('[data-action="add-page"]');
+  const addRowButton = document.querySelector('[data-action="add-row"]');
+  const removeRowButton = document.querySelector('[data-action="remove-row"]');
   const productTools = document.querySelector(".product-tools");
 
   if (removeButton) {
@@ -1250,6 +1317,15 @@ function refreshPageControls() {
 
   if (addButton) {
     addButton.classList.toggle("hidden", !isDailySheet());
+  }
+
+  if (addRowButton) {
+    addRowButton.classList.toggle("hidden", isDailySheet());
+  }
+
+  if (removeRowButton) {
+    removeRowButton.disabled = isDailySheet() || (getCurrentSheetState().extraRowCount || 0) === 0;
+    removeRowButton.classList.toggle("hidden", isDailySheet());
   }
 
   if (productTools) {
@@ -1314,13 +1390,14 @@ function createDefaultSheetDrafts() {
       {
         values: { ...(definition.defaultValues || {}) },
         extraPageCount: definition.key === DAILY_SHEET_KEY ? 0 : 0,
+        extraRowCount: 0,
       },
     ]),
   );
 }
 
 function getCurrentSheetState() {
-  sheetDrafts[currentSheetKey] ||= { values: {}, extraPageCount: 0 };
+  sheetDrafts[currentSheetKey] ||= { values: {}, extraPageCount: 0, extraRowCount: 0 };
   return sheetDrafts[currentSheetKey];
 }
 
@@ -1351,6 +1428,7 @@ function hydrateDraftState(payload) {
               definition.key === DAILY_SHEET_KEY
                 ? normalizeExtraPageCount(saved.extraPageCount)
                 : 0,
+            extraRowCount: normalizeExtraRowCount(saved.extraRowCount),
           },
         ];
       }),
@@ -1363,6 +1441,7 @@ function hydrateDraftState(payload) {
       extraPageCount: normalizeExtraPageCount(
         payload.extraPageCount ?? inferExtraPageCount(payload.values || payload),
       ),
+      extraRowCount: 0,
     };
     currentSheetKey = DAILY_SHEET_KEY;
   }
@@ -1633,6 +1712,16 @@ function inferExtraPageCount(values) {
 }
 
 function normalizeExtraPageCount(value) {
+  const count = Number(value);
+
+  if (!Number.isFinite(count) || count < 0) {
+    return 0;
+  }
+
+  return Math.floor(count);
+}
+
+function normalizeExtraRowCount(value) {
   const count = Number(value);
 
   if (!Number.isFinite(count) || count < 0) {
