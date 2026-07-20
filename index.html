@@ -35,8 +35,6 @@
       <button type="button" data-action="today">Today</button>
       <button type="button" data-action="add-page">Add Page</button>
       <button type="button" data-action="remove-page">Remove Last Page</button>
-      <button type="button" data-action="add-row">Add Row</button>
-      <button type="button" data-action="remove-row">Remove Last Row</button>
       <button type="button" data-action="save">Save Draft</button>
       <button type="button" data-action="clear">Clear Draft</button>
       <button type="button" data-action="export">Export JSON</button>
@@ -44,6 +42,7 @@
         Import JSON
         <input id="import-file" type="file" accept="application/json">
       </label>
+      <button type="button" class="share-button" data-action="share-pdf">Share PDF / WhatsApp</button>
       <button type="button" class="print-button" data-action="print">Print</button>
     </div>
 
@@ -105,6 +104,8 @@
 
   <datalist id="product-options"></datalist>
 
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

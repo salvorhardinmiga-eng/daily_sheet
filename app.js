@@ -768,9 +768,9 @@ function renderMarketSheet(definition) {
 
         <table class="market-sheet-table">
           <colgroup>
-            <col style="width: 58%">
-            <col style="width: 15%">
-            <col style="width: 27%">
+            <col style="width: 56%">
+            <col style="width: 11%">
+            <col style="width: 33%">
           </colgroup>
           <thead>
             <tr>
@@ -800,33 +800,80 @@ function renderMarketSheet(definition) {
 }
 
 function getMarketRows(definition) {
-  const extraRows = Array.from(
-    { length: getCurrentSheetState().extraRowCount || 0 },
-    (_, index) => ({
-      kind: "item",
-      descriptionField: `${definition.key}.extra_rows.${index}.description`,
-      rateField: `${definition.key}.extra_rows.${index}.rate`,
-      termsField: `${definition.key}.extra_rows.${index}.terms`,
-      isExtra: true,
-    }),
+  const state = getCurrentSheetState();
+  const companyRows = definition.rows.flatMap((row) => {
+    if (row.kind !== "group") {
+      return [row];
+    }
+
+    const count = state.companyExtraRows?.[row.field] || 0;
+    const prefix = getCompanyExtraRowPrefix(row.field);
+    const extraRows = Array.from({ length: count }, (_, index) =>
+      createMarketExtraRow(`${prefix}.${index}`),
+    );
+
+    return [row, ...extraRows];
+  });
+
+  // Keep rows created with the previous version visible in older saved drafts.
+  const legacyRows = Array.from(
+    { length: state.extraRowCount || 0 },
+    (_, index) => createMarketExtraRow(`${definition.key}.extra_rows.${index}`),
   );
 
-  return [...definition.rows, ...extraRows];
+  return [...companyRows, ...legacyRows];
+}
+
+function createMarketExtraRow(prefix) {
+  return {
+    kind: "item",
+    descriptionField: `${prefix}.description`,
+    rateField: `${prefix}.rate`,
+    termsField: `${prefix}.terms`,
+    isExtra: true,
+  };
+}
+
+function getCompanyExtraRowPrefix(groupField) {
+  return groupField.replace(/\.group$/, ".extra_rows");
 }
 
 function renderMarketRow(row) {
   if (row.kind === "group") {
+    const extraRowCount = getCurrentSheetState().companyExtraRows?.[row.field] || 0;
+
     return `
       <tr class="market-group-row">
         <td colspan="3">
-          <input
-            class="market-group-input"
-            type="text"
-            autocomplete="off"
-            spellcheck="false"
-            data-field="${row.field}"
-            aria-label="${escapeHtml(row.field)}"
-          >
+          <div class="market-group-content">
+            <input
+              class="market-group-input"
+              type="text"
+              autocomplete="off"
+              spellcheck="false"
+              data-field="${row.field}"
+              aria-label="${escapeHtml(row.field)}"
+            >
+            <div
+              class="market-company-actions no-print"
+              data-html2canvas-ignore="true"
+              aria-label="Company row controls"
+            >
+              <button
+                class="market-company-button"
+                type="button"
+                data-action="add-company-row"
+                data-company-field="${escapeHtml(row.field)}"
+              >+ Add row</button>
+              <button
+                class="market-company-button market-company-remove"
+                type="button"
+                data-action="remove-company-row"
+                data-company-field="${escapeHtml(row.field)}"
+                ${extraRowCount === 0 ? "disabled" : ""}
+              >Remove row</button>
+            </div>
+          </div>
         </td>
       </tr>
     `;
@@ -992,8 +1039,6 @@ function bindToolbar() {
   document.querySelector('[data-action="today"]').addEventListener("click", applyToday);
   document.querySelector('[data-action="add-page"]').addEventListener("click", addPage);
   document.querySelector('[data-action="remove-page"]').addEventListener("click", removeLastPage);
-  document.querySelector('[data-action="add-row"]').addEventListener("click", addMarketRow);
-  document.querySelector('[data-action="remove-row"]').addEventListener("click", removeLastMarketRow);
   document.querySelector('[data-action="save"]').addEventListener("click", saveDraft);
   document.querySelector('[data-action="clear"]').addEventListener("click", clearDraft);
   document.querySelector('[data-action="export"]').addEventListener("click", exportDraft);
@@ -1004,11 +1049,27 @@ function bindToolbar() {
   });
   document.querySelector('[data-action="save-products"]').addEventListener("click", saveProductCatalogEditor);
   document.querySelector('[data-action="reset-products"]').addEventListener("click", resetProductCatalogEditor);
+  document.querySelector('[data-action="share-pdf"]').addEventListener("click", sharePdf);
   document.querySelector('[data-action="print"]').addEventListener("click", () => {
     saveDraft();
     window.print();
   });
   document.getElementById("import-file").addEventListener("change", importDraft);
+  document.getElementById("sheet-root").addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-action]");
+
+    if (!(button instanceof HTMLButtonElement)) {
+      return;
+    }
+
+    if (button.dataset.action === "add-company-row") {
+      addCompanyMarketRow(button.dataset.companyField);
+    }
+
+    if (button.dataset.action === "remove-company-row") {
+      removeCompanyMarketRow(button.dataset.companyField);
+    }
+  });
   document.getElementById("new-product-input").addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
@@ -1175,6 +1236,114 @@ function exportDraft() {
   setStatus(`Draft exported as JSON for ${dateValue}.`, "success");
 }
 
+async function sharePdf() {
+  const shareButton = document.querySelector('[data-action="share-pdf"]');
+
+  if (!(shareButton instanceof HTMLButtonElement)) {
+    return;
+  }
+
+  saveDraft();
+  shareButton.disabled = true;
+  shareButton.textContent = "Making PDF...";
+
+  try {
+    const pdfBlob = await createPdfBlob();
+    const dateValue = sanitizeForFilename(getFieldValue(getActiveDateFieldName()) || "report");
+    const sheetLabel = sanitizeForFilename(getSheetDefinition(currentSheetKey).label.toLowerCase());
+    const filename = `${sheetLabel}-${dateValue}.pdf`;
+    const pdfFile = new File([pdfBlob], filename, { type: "application/pdf" });
+    const shareText = `${getSheetDefinition(currentSheetKey).label} for ${dateValue}`;
+
+    if (navigator.canShare?.({ files: [pdfFile] })) {
+      await navigator.share({
+        files: [pdfFile],
+        title: getSheetDefinition(currentSheetKey).label,
+        text: shareText,
+      });
+      setStatus("PDF is ready to send. Choose WhatsApp in the share menu.", "success");
+      return;
+    }
+
+    downloadBlob(pdfBlob, filename);
+    window.open(
+      `https://wa.me/?text=${encodeURIComponent(`${shareText}. The PDF has been downloaded; attach it to this message.`)}`,
+      "_blank",
+      "noopener",
+    );
+    setStatus("PDF downloaded. Attach it in the WhatsApp message that just opened.", "success");
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      setStatus("PDF sharing was cancelled.");
+      return;
+    }
+
+    console.error(error);
+    setStatus("The PDF could not be created. Check your internet connection and try again.", "error");
+  } finally {
+    shareButton.disabled = false;
+    shareButton.textContent = "Share PDF / WhatsApp";
+  }
+}
+
+async function createPdfBlob() {
+  const jsPdfConstructor = window.jspdf?.jsPDF;
+
+  if (typeof window.html2canvas !== "function" || !jsPdfConstructor) {
+    throw new Error("PDF tools did not load");
+  }
+
+  const pages = Array.from(document.querySelectorAll("#sheet-root .sheet-page"));
+
+  if (pages.length === 0) {
+    throw new Error("There is no sheet to export");
+  }
+
+  document.body.classList.add("is-pdf-export");
+
+  try {
+    await new Promise((resolve) => {
+      window.requestAnimationFrame(() => window.requestAnimationFrame(resolve));
+    });
+
+    const pdf = new jsPdfConstructor({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4",
+      compress: true,
+    });
+
+    for (const [index, page] of pages.entries()) {
+      const canvas = await window.html2canvas(page, {
+        backgroundColor: "#ffffff",
+        logging: false,
+        scale: 2,
+        useCORS: true,
+      });
+
+      if (index > 0) {
+        pdf.addPage("a4", "portrait");
+      }
+
+      pdf.addImage(canvas.toDataURL("image/jpeg", 0.94), "JPEG", 0, 0, 210, 297, undefined, "FAST");
+    }
+
+    return pdf.output("blob");
+  } finally {
+    document.body.classList.remove("is-pdf-export");
+  }
+}
+
+function downloadBlob(blob, filename) {
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+
+  link.href = url;
+  link.download = filename;
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
 async function importDraft(event) {
   const file = event.target.files?.[0];
 
@@ -1255,39 +1424,40 @@ function removeLastPage() {
   setStatus(`Removed extra page ${lastPageIndex}.`, "success");
 }
 
-function addMarketRow() {
-  if (isDailySheet()) {
+function addCompanyMarketRow(groupField) {
+  if (isDailySheet() || !groupField) {
     return;
   }
 
   const values = collectFormValues();
   const state = getCurrentSheetState();
-  state.extraRowCount = (state.extraRowCount || 0) + 1;
+  state.companyExtraRows ||= {};
+  state.companyExtraRows[groupField] = (state.companyExtraRows[groupField] || 0) + 1;
   renderActiveSheet(values);
   saveDraft();
-  setStatus(`Added extra row ${state.extraRowCount}.`, "success");
+  setStatus("Added a row below this company.", "success");
 }
 
-function removeLastMarketRow() {
-  if (isDailySheet()) {
+function removeCompanyMarketRow(groupField) {
+  if (isDailySheet() || !groupField) {
     return;
   }
 
   const state = getCurrentSheetState();
-  const extraRowCount = state.extraRowCount || 0;
+  const extraRowCount = state.companyExtraRows?.[groupField] || 0;
 
   if (extraRowCount === 0) {
-    setStatus("There are no extra rows to remove.", "error");
+    setStatus("There are no added rows under this company.", "error");
     return;
   }
 
   const values = collectFormValues();
-  const rowPrefix = `${currentSheetKey}.extra_rows.${extraRowCount - 1}.`;
+  const rowPrefix = `${getCompanyExtraRowPrefix(groupField)}.${extraRowCount - 1}.`;
   const hasRowData = Object.entries(values).some(
     ([name, value]) => name.startsWith(rowPrefix) && String(value).trim() !== "",
   );
 
-  if (hasRowData && !window.confirm("Remove the last added row? Its entered values will be deleted.")) {
+  if (hasRowData && !window.confirm("Remove the last added row for this company? Its entered values will be deleted.")) {
     return;
   }
 
@@ -1297,17 +1467,15 @@ function removeLastMarketRow() {
       delete values[name];
     });
 
-  state.extraRowCount = extraRowCount - 1;
+  state.companyExtraRows[groupField] = extraRowCount - 1;
   renderActiveSheet(values);
   saveDraft();
-  setStatus(`Removed extra row ${extraRowCount}.`, "success");
+  setStatus("Removed the last added row for this company.", "success");
 }
 
 function refreshPageControls() {
   const removeButton = document.querySelector('[data-action="remove-page"]');
   const addButton = document.querySelector('[data-action="add-page"]');
-  const addRowButton = document.querySelector('[data-action="add-row"]');
-  const removeRowButton = document.querySelector('[data-action="remove-row"]');
   const productTools = document.querySelector(".product-tools");
 
   if (removeButton) {
@@ -1317,15 +1485,6 @@ function refreshPageControls() {
 
   if (addButton) {
     addButton.classList.toggle("hidden", !isDailySheet());
-  }
-
-  if (addRowButton) {
-    addRowButton.classList.toggle("hidden", isDailySheet());
-  }
-
-  if (removeRowButton) {
-    removeRowButton.disabled = isDailySheet() || (getCurrentSheetState().extraRowCount || 0) === 0;
-    removeRowButton.classList.toggle("hidden", isDailySheet());
   }
 
   if (productTools) {
@@ -1391,13 +1550,19 @@ function createDefaultSheetDrafts() {
         values: { ...(definition.defaultValues || {}) },
         extraPageCount: definition.key === DAILY_SHEET_KEY ? 0 : 0,
         extraRowCount: 0,
+        companyExtraRows: {},
       },
     ]),
   );
 }
 
 function getCurrentSheetState() {
-  sheetDrafts[currentSheetKey] ||= { values: {}, extraPageCount: 0, extraRowCount: 0 };
+  sheetDrafts[currentSheetKey] ||= {
+    values: {},
+    extraPageCount: 0,
+    extraRowCount: 0,
+    companyExtraRows: {},
+  };
   return sheetDrafts[currentSheetKey];
 }
 
@@ -1429,6 +1594,7 @@ function hydrateDraftState(payload) {
                 ? normalizeExtraPageCount(saved.extraPageCount)
                 : 0,
             extraRowCount: normalizeExtraRowCount(saved.extraRowCount),
+            companyExtraRows: normalizeCompanyExtraRows(saved.companyExtraRows),
           },
         ];
       }),
@@ -1442,6 +1608,7 @@ function hydrateDraftState(payload) {
         payload.extraPageCount ?? inferExtraPageCount(payload.values || payload),
       ),
       extraRowCount: 0,
+      companyExtraRows: {},
     };
     currentSheetKey = DAILY_SHEET_KEY;
   }
@@ -1729,6 +1896,18 @@ function normalizeExtraRowCount(value) {
   }
 
   return Math.floor(count);
+}
+
+function normalizeCompanyExtraRows(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(value)
+      .map(([field, count]) => [field, normalizeExtraRowCount(count)])
+      .filter(([, count]) => count > 0),
+  );
 }
 
 function getExtraPageKey(index) {

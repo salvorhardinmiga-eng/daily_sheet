@@ -135,6 +135,12 @@ label {
   color: #fff;
 }
 
+.share-button {
+  background: #0f7a58 !important;
+  border-color: #0f7a58 !important;
+  color: #fff !important;
+}
+
 .file-button {
   position: relative;
   overflow: hidden;
@@ -342,6 +348,7 @@ label {
 
 .market-sheet-line {
   width: 100%;
+  min-width: 0;
   padding: 0;
   border: none;
   background: transparent;
@@ -377,6 +384,7 @@ label {
 
 .market-sheet-table {
   width: 100%;
+  min-width: 0;
   border-collapse: collapse;
   table-layout: fixed;
   font-size: 9pt;
@@ -408,9 +416,16 @@ label {
   background: #dbe4f0;
 }
 
+.market-group-content {
+  display: flex;
+  align-items: center;
+  gap: 2mm;
+}
+
 .market-group-input,
 .market-row-input {
   width: 100%;
+  min-width: 0;
   border: none;
   background: transparent;
   color: #111827;
@@ -418,9 +433,40 @@ label {
 }
 
 .market-group-input {
+  flex: 1 1 auto;
+  min-width: 0;
   padding: 2.7mm 3.2mm;
   font-size: 10pt;
   font-weight: 900;
+}
+
+.market-company-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 1.2mm;
+  padding-right: 2.4mm;
+}
+
+.market-company-button {
+  min-height: 7.4mm;
+  padding: 0 2.2mm;
+  border: 1px solid #475569;
+  border-radius: 999px;
+  background: #fff;
+  color: #172033;
+  font-size: 7.2pt;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.market-company-button:hover {
+  border-color: #1596cf;
+  color: #0e7490;
+}
+
+.market-company-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .market-row-input {
@@ -653,9 +699,10 @@ label {
   flex: 1;
 }
 
-@media (max-width: 960px) {
+@media screen and (max-width: 960px) {
   .workspace-toolbar {
     position: static;
+    padding: 14px 12px;
   }
 
   .workspace {
@@ -681,6 +728,20 @@ label {
     height: auto;
     min-height: 0;
     overflow: visible;
+  }
+
+  .toolbar-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .toolbar-actions button,
+  .toolbar-actions .file-button {
+    width: 100%;
+    min-width: 0;
+    padding: 0 10px;
+    font-size: 0.88rem;
   }
 
   .market-sheet-page {
@@ -719,6 +780,22 @@ label {
     font-size: 7.6pt;
   }
 
+  .market-group-content {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 1mm;
+  }
+
+  .market-company-actions {
+    padding: 0 1.8mm 1.8mm;
+  }
+
+  .market-company-button {
+    flex: 1;
+    min-height: 28px;
+    font-size: 0.72rem;
+  }
+
   .market-row-input {
     padding: 2mm 1.8mm;
     font-size: 6.9pt;
@@ -753,11 +830,15 @@ label {
   }
 
   .sheet-switcher {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
   }
 
   .sheet-switcher-button {
-    flex: 1 1 170px;
+    width: 100%;
+    min-width: 0;
+    padding: 0 8px;
   }
 
   .modal-shell {
@@ -779,6 +860,56 @@ label {
   }
 }
 
+/* Keep PDF capture at the real A4 layout even when it starts from a phone. */
+body.is-pdf-export .sheet-page {
+  width: var(--page-width) !important;
+  max-width: none !important;
+  height: var(--page-height) !important;
+  min-height: var(--page-height) !important;
+  overflow: hidden !important;
+}
+
+body.is-pdf-export .market-sheet-page {
+  padding: 11mm 11mm 14mm !important;
+}
+
+body.is-pdf-export .market-sheet-layout {
+  gap: 7mm !important;
+}
+
+body.is-pdf-export .market-sheet-title {
+  font-size: 18pt !important;
+}
+
+body.is-pdf-export .market-sheet-line,
+body.is-pdf-export .market-footer-input {
+  font-size: 10pt !important;
+}
+
+body.is-pdf-export .market-sheet-note {
+  padding: 4.2mm 5mm !important;
+  font-size: 9.2pt !important;
+}
+
+body.is-pdf-export .market-sheet-table {
+  font-size: 9pt !important;
+}
+
+body.is-pdf-export .market-sheet-table thead th {
+  padding: 3.1mm 3.2mm !important;
+  font-size: 9.3pt !important;
+}
+
+body.is-pdf-export .market-group-input {
+  padding: 2.7mm 3.2mm !important;
+  font-size: 10pt !important;
+}
+
+body.is-pdf-export .market-row-input {
+  padding: 2.9mm 3.2mm !important;
+  font-size: 9.2pt !important;
+}
+
 @media print {
   @page {
     size: A4 portrait;
@@ -787,6 +918,8 @@ label {
 
   body {
     background: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   .no-print {
@@ -805,5 +938,15 @@ label {
   .sheet-page {
     box-shadow: none;
     margin: 0;
+  }
+
+  .market-sheet-title,
+  .market-sheet-header,
+  .market-sheet-table thead {
+    display: block;
+  }
+
+  .market-sheet-table thead {
+    display: table-header-group;
   }
 }
