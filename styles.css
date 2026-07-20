@@ -66,6 +66,35 @@ label {
   font-size: 0.98rem;
 }
 
+.sheet-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.sheet-switcher-button {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid rgba(31, 41, 55, 0.14);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+}
+
+.sheet-switcher-button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(21, 150, 207, 0.4);
+  box-shadow: 0 6px 18px rgba(21, 150, 207, 0.12);
+}
+
+.sheet-switcher-button.active {
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
+}
+
 .toolbar-actions {
   display: flex;
   flex-wrap: wrap;
@@ -286,6 +315,153 @@ label {
   break-after: auto;
 }
 
+.market-sheet-page {
+  padding: 11mm 11mm 14mm;
+}
+
+.market-sheet-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 7mm;
+  height: 100%;
+}
+
+.market-sheet-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2.6mm;
+}
+
+.market-sheet-title {
+  margin: 0;
+  font-size: 18pt;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.market-sheet-line {
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font-size: 10pt;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.market-sheet-line:focus {
+  outline: none;
+}
+
+.market-sheet-top-rule {
+  border-top: 2px solid #111827;
+}
+
+.market-sheet-note {
+  padding: 4.2mm 5mm;
+  border: 1.5px solid #111827;
+  background: #f3f6fb;
+  color: #111827;
+  font-size: 9.2pt;
+  font-weight: 800;
+  line-height: 1.25;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.market-sheet-note-icon {
+  margin-right: 1.5mm;
+}
+
+.market-sheet-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 9pt;
+}
+
+.market-sheet-table thead th {
+  padding: 3.1mm 3.2mm;
+  border-right: 1px solid #303030;
+  background: #040404;
+  color: #fff;
+  font-size: 9.3pt;
+  font-weight: 900;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.market-sheet-table thead th:last-child {
+  border-right: none;
+}
+
+.market-sheet-table tbody td {
+  border-bottom: 1px solid #1f2937;
+  padding: 0;
+}
+
+.market-group-row td {
+  border-top: 2px solid #111827;
+  border-bottom: 2px solid #111827;
+  background: #dbe4f0;
+}
+
+.market-group-input,
+.market-row-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: #111827;
+  text-transform: uppercase;
+}
+
+.market-group-input {
+  padding: 2.7mm 3.2mm;
+  font-size: 10pt;
+  font-weight: 900;
+}
+
+.market-row-input {
+  padding: 2.9mm 3.2mm;
+  font-size: 9.2pt;
+  font-weight: 800;
+}
+
+.market-group-input:focus,
+.market-row-input:focus {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+  background: rgba(21, 150, 207, 0.05);
+}
+
+.market-rate-cell .market-row-input {
+  text-align: right;
+}
+
+.market-footer {
+  margin-top: auto;
+  padding-top: 5.5mm;
+  border-top: 3px dashed #111827;
+  text-align: center;
+}
+
+.market-footer-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: #111827;
+  font-size: 10pt;
+  font-weight: 900;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.market-footer-input:focus {
+  outline: none;
+}
+
 .sheet-header {
   display: flex;
   flex-direction: column;
@@ -497,6 +673,14 @@ label {
   .sheet-stack {
     align-items: flex-start;
     padding: 0 8px;
+  }
+
+  .sheet-switcher {
+    gap: 8px;
+  }
+
+  .sheet-switcher-button {
+    flex: 1 1 170px;
   }
 
   .modal-shell {

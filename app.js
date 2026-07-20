@@ -471,6 +471,183 @@ const basePages = [
   },
 ];
 
+const DAILY_SHEET_KEY = "daily";
+const MARKET_SHEET_NOTE =
+  "NOTE FOR BUYERS: ALL RATES SUBJECT TO MARKET FLUCTUATIONS. FINAL RATES & DISCOUNTS CONFIRMED ONLY AT TIME OF BOOKING.";
+
+const sheetDefinitions = [
+  {
+    key: "daily",
+    label: "Daily Sheet",
+    workspaceTitle: "Daily Wages & Operations Report",
+    workspaceDescription:
+      "Fill the shop sheet on screen, save the draft locally, and print the base report in two A4 pages. Add extra Chillar pages only when you need them.",
+  },
+  {
+    key: "grains",
+    label: "Grains Rate Sheet",
+    workspaceTitle: "Wheat, Bajra & Jowar Rate Sheet",
+    workspaceDescription:
+      "Use this one-page market rate sheet for grains. Update the company line, date, parties, rates, and terms, then print the current A4 page.",
+    reportTitle: "WHEAT - BAJRA - JOWAR REPORT",
+    defaultValues: {
+      "grains.meta.company": "PREMRATAN TR. CO. | JAYESH DAIYA: 9890703024",
+      "grains.meta.date": "18 / 07 / 2026",
+      "grains.meta.footer": "PREMRATAN TR. CO. — JAYESH DAIYA (9890703024)",
+      "grains.rows.0.group": "CHETAN TR.",
+      "grains.rows.1.description": "WHEAT",
+      "grains.rows.1.rate": "3,000/-",
+      "grains.rows.1.terms": "DELIVERY, 4% DISCOUNT",
+      "grains.rows.2.description": "BAJRA GREEN",
+      "grains.rows.2.rate": "3,100/-",
+      "grains.rows.2.terms": "DELIVERY, 4% DISCOUNT",
+      "grains.rows.3.group": "GAJANAD IND.",
+      "grains.rows.4.description": "B. HORSE JAWAR",
+      "grains.rows.4.rate": "4,251/-",
+      "grains.rows.4.terms": "DELIVERY, 4% DISCOUNT",
+      "grains.rows.5.description": "BADSHAH JAWAR",
+      "grains.rows.5.rate": "3,251/-",
+      "grains.rows.5.terms": "DELIVERY, 4% DISCOUNT",
+    },
+    rows: [
+      { kind: "group", field: "grains.rows.0.group" },
+      { kind: "item", descriptionField: "grains.rows.1.description", rateField: "grains.rows.1.rate", termsField: "grains.rows.1.terms" },
+      { kind: "item", descriptionField: "grains.rows.2.description", rateField: "grains.rows.2.rate", termsField: "grains.rows.2.terms" },
+      { kind: "group", field: "grains.rows.3.group" },
+      { kind: "item", descriptionField: "grains.rows.4.description", rateField: "grains.rows.4.rate", termsField: "grains.rows.4.terms" },
+      { kind: "item", descriptionField: "grains.rows.5.description", rateField: "grains.rows.5.rate", termsField: "grains.rows.5.terms" },
+    ],
+  },
+  {
+    key: "rice",
+    label: "Rice Rate Sheet",
+    workspaceTitle: "Rice Market Rate Sheet",
+    workspaceDescription:
+      "Use this one-page rice market sheet to update brands, rates, and booking terms, then print the current A4 page.",
+    reportTitle: "RICE MARKET REPORT",
+    defaultValues: {
+      "rice.meta.company": "PREMRATAN TR. CO. | JAYESH DAIYA: 9890703024",
+      "rice.meta.date": "18 / 07 / 2026",
+      "rice.meta.footer": "PREMRATAN TR. CO. — JAYESH DAIYA (9890703024)",
+      "rice.rows.0.group": "BHAYSHREE",
+      "rice.rows.1.description": "BHAYSHREE AH",
+      "rice.rows.1.rate": "7,000/-",
+      "rice.rows.1.terms": "DELIVERY, 5% DISCOUNT",
+      "rice.rows.2.description": "AMMI JAAN BROKEN",
+      "rice.rows.2.rate": "3,350/-",
+      "rice.rows.2.terms": "DELIVERY, 5% DISCOUNT",
+      "rice.rows.3.group": "MA FOODS",
+      "rice.rows.4.description": "MASURI BOILED",
+      "rice.rows.4.rate": "3,700/-",
+      "rice.rows.4.terms": "DELIVERY, 3% DISCOUNT",
+      "rice.rows.5.description": "MASURI STEAM",
+      "rice.rows.5.rate": "4,300/-",
+      "rice.rows.5.terms": "DELIVERY, 3% DISCOUNT",
+      "rice.rows.6.group": "YOG ENT.",
+      "rice.rows.7.description": "DOUBLE MORE",
+      "rice.rows.7.rate": "6,700/-",
+      "rice.rows.7.terms": "DELIVERY, 3% DISCOUNT",
+      "rice.rows.8.description": "KESAR MALAI",
+      "rice.rows.8.rate": "7,400/-",
+      "rice.rows.8.terms": "DELIVERY, 3% DISCOUNT",
+      "rice.rows.9.description": "YOG AMBEMOHAR",
+      "rice.rows.9.rate": "15,200/-",
+      "rice.rows.9.terms": "DELIVERY, 3% DISCOUNT",
+      "rice.rows.10.description": "DOUBLE MORE STEAM",
+      "rice.rows.10.rate": "NO SALE",
+      "rice.rows.10.terms": "SPOT, 3% DISCOUNT (MIRGULADA)",
+      "rice.rows.11.description": "NEER STEAM",
+      "rice.rows.11.rate": "7,700/-",
+      "rice.rows.11.terms": "DELIVERY, 3% DISCOUNT",
+      "rice.rows.12.group": "VISHAPRABHA RICE MILL",
+      "rice.rows.13.description": "SONA STEAM RICE RAJMOTI",
+      "rice.rows.13.rate": "6,000/-",
+      "rice.rows.13.terms": "DELIVERY, 3% DISCOUNT",
+      "rice.rows.14.description": "RNR STEAM RICE NOORIE GOLD",
+      "rice.rows.14.rate": "6,160/-",
+      "rice.rows.14.terms": "DELIVERY, 3% DISCOUNT",
+      "rice.rows.15.description": "BROKEN STEAM MURLIDAR",
+      "rice.rows.15.rate": "3,150/-",
+      "rice.rows.15.terms": "DELIVERY, 3% DISCOUNT",
+      "rice.rows.16.description": "INDRAYANI",
+      "rice.rows.16.rate": "8,200/-",
+      "rice.rows.16.terms": "DELIVERY, 3% DISCOUNT",
+    },
+    rows: [
+      { kind: "group", field: "rice.rows.0.group" },
+      { kind: "item", descriptionField: "rice.rows.1.description", rateField: "rice.rows.1.rate", termsField: "rice.rows.1.terms" },
+      { kind: "item", descriptionField: "rice.rows.2.description", rateField: "rice.rows.2.rate", termsField: "rice.rows.2.terms" },
+      { kind: "group", field: "rice.rows.3.group" },
+      { kind: "item", descriptionField: "rice.rows.4.description", rateField: "rice.rows.4.rate", termsField: "rice.rows.4.terms" },
+      { kind: "item", descriptionField: "rice.rows.5.description", rateField: "rice.rows.5.rate", termsField: "rice.rows.5.terms" },
+      { kind: "group", field: "rice.rows.6.group" },
+      { kind: "item", descriptionField: "rice.rows.7.description", rateField: "rice.rows.7.rate", termsField: "rice.rows.7.terms" },
+      { kind: "item", descriptionField: "rice.rows.8.description", rateField: "rice.rows.8.rate", termsField: "rice.rows.8.terms" },
+      { kind: "item", descriptionField: "rice.rows.9.description", rateField: "rice.rows.9.rate", termsField: "rice.rows.9.terms" },
+      { kind: "item", descriptionField: "rice.rows.10.description", rateField: "rice.rows.10.rate", termsField: "rice.rows.10.terms" },
+      { kind: "item", descriptionField: "rice.rows.11.description", rateField: "rice.rows.11.rate", termsField: "rice.rows.11.terms" },
+      { kind: "group", field: "rice.rows.12.group" },
+      { kind: "item", descriptionField: "rice.rows.13.description", rateField: "rice.rows.13.rate", termsField: "rice.rows.13.terms" },
+      { kind: "item", descriptionField: "rice.rows.14.description", rateField: "rice.rows.14.rate", termsField: "rice.rows.14.terms" },
+      { kind: "item", descriptionField: "rice.rows.15.description", rateField: "rice.rows.15.rate", termsField: "rice.rows.15.terms" },
+      { kind: "item", descriptionField: "rice.rows.16.description", rateField: "rice.rows.16.rate", termsField: "rice.rows.16.terms" },
+    ],
+  },
+  {
+    key: "turdal",
+    label: "Turdal Rate Sheet",
+    workspaceTitle: "Turdal Market Rate Sheet",
+    workspaceDescription:
+      "Use this one-page turdal market sheet to maintain current rates and booking terms, then print the current A4 page.",
+    reportTitle: "TURDAL MARKET REPORT",
+    defaultValues: {
+      "turdal.meta.company": "PREMRATAN TR. CO. | JAYESH DAIYA: 9890703024",
+      "turdal.meta.date": "18 / 07 / 2026",
+      "turdal.meta.footer": "PREMRATAN TR. CO. — JAYESH DAIYA (9890703024)",
+      "turdal.rows.0.group": "SHREE FOOD PROCESSING (TURDAL)",
+      "turdal.rows.1.description": "MAULI PATKA (POLISH)",
+      "turdal.rows.1.rate": "114/-",
+      "turdal.rows.1.terms": "SPOT, 2% DISCOUNT",
+      "turdal.rows.2.description": "SAMRUDHA PATKA (POLISH)",
+      "turdal.rows.2.rate": "108/-",
+      "turdal.rows.2.terms": "SPOT, 2% DISCOUNT",
+      "turdal.rows.3.description": "MARUTI 1.25 NO. (POLISH)",
+      "turdal.rows.3.rate": "106/-",
+      "turdal.rows.3.terms": "SPOT, 2% DISCOUNT",
+      "turdal.rows.4.description": "VRUNDAVAN 1.25 NO. (POLISH)",
+      "turdal.rows.4.rate": "100/-",
+      "turdal.rows.4.terms": "SPOT, 2% DISCOUNT",
+      "turdal.rows.5.description": "TOORDAL TUKDI",
+      "turdal.rows.5.rate": "56/-",
+      "turdal.rows.5.terms": "SPOT, 2% DISCOUNT",
+      "turdal.rows.6.group": "MUNOT IND.",
+      "turdal.rows.7.description": "TURDAL CLASSIC",
+      "turdal.rows.7.rate": "110/-",
+      "turdal.rows.7.terms": "SPOT, 2% DISCOUNT",
+      "turdal.rows.8.description": "TURDAL JIMET",
+      "turdal.rows.8.rate": "102/-",
+      "turdal.rows.8.terms": "SPOT, 2% DISCOUNT",
+      "turdal.rows.9.description": "TUKDI NAMO",
+      "turdal.rows.9.rate": "58/-",
+      "turdal.rows.9.terms": "SPOT, 2% DISCOUNT",
+    },
+    rows: [
+      { kind: "group", field: "turdal.rows.0.group" },
+      { kind: "item", descriptionField: "turdal.rows.1.description", rateField: "turdal.rows.1.rate", termsField: "turdal.rows.1.terms" },
+      { kind: "item", descriptionField: "turdal.rows.2.description", rateField: "turdal.rows.2.rate", termsField: "turdal.rows.2.terms" },
+      { kind: "item", descriptionField: "turdal.rows.3.description", rateField: "turdal.rows.3.rate", termsField: "turdal.rows.3.terms" },
+      { kind: "item", descriptionField: "turdal.rows.4.description", rateField: "turdal.rows.4.rate", termsField: "turdal.rows.4.terms" },
+      { kind: "item", descriptionField: "turdal.rows.5.description", rateField: "turdal.rows.5.rate", termsField: "turdal.rows.5.terms" },
+      { kind: "group", field: "turdal.rows.6.group" },
+      { kind: "item", descriptionField: "turdal.rows.7.description", rateField: "turdal.rows.7.rate", termsField: "turdal.rows.7.terms" },
+      { kind: "item", descriptionField: "turdal.rows.8.description", rateField: "turdal.rows.8.rate", termsField: "turdal.rows.8.terms" },
+      { kind: "item", descriptionField: "turdal.rows.9.description", rateField: "turdal.rows.9.rate", termsField: "turdal.rows.9.terms" },
+    ],
+  },
+];
+
+let currentSheetKey = getSheetKeyFromHash() || DAILY_SHEET_KEY;
+let sheetDrafts = createDefaultSheetDrafts();
 let extraPageCount = 0;
 let baseProductCatalog = [];
 let customProductCatalog = [];
@@ -480,9 +657,11 @@ let saveTimer = null;
 
 function init() {
   loadProductCatalog();
+  renderSheetSwitcher();
+  refreshWorkspaceChrome();
   bindToolbar();
   bindFieldEvents();
-  renderSheet();
+  renderActiveSheet();
   loadDraft();
   renderProductSuggestionList();
 }
@@ -517,16 +696,18 @@ function createExtraPage(index) {
   };
 }
 
-function renderSheet(values = {}) {
+function renderActiveSheet(values = getCurrentSheetState().values) {
   const root = document.getElementById("sheet-root");
-  root.innerHTML = renderPages();
+  const definition = getSheetDefinition(currentSheetKey);
+  root.innerHTML = isDailySheet() ? renderPages() : renderMarketSheet(definition);
 
   fieldMap = new Map(
     Array.from(document.querySelectorAll("[data-field]")).map((field) => [field.dataset.field, field]),
   );
 
-  applyValues(migrateLegacyValues(values));
+  applyValues(isDailySheet() ? migrateLegacyValues(values) : values);
   refreshPageControls();
+  refreshWorkspaceChrome();
 }
 
 function renderPage(page) {
@@ -553,6 +734,122 @@ function renderHeader() {
 
       <div class="sheet-rule"></div>
     </div>
+  `;
+}
+
+function renderMarketSheet(definition) {
+  return `
+    <section class="sheet-page market-sheet-page">
+      <div class="market-sheet-layout">
+        <div class="market-sheet-header">
+          <h2 class="market-sheet-title">${escapeHtml(definition.reportTitle)}</h2>
+          <input
+            class="market-sheet-line"
+            type="text"
+            autocomplete="off"
+            spellcheck="false"
+            data-field="${definition.key}.meta.company"
+            aria-label="${escapeHtml(definition.label)} company line"
+          >
+          <input
+            class="market-sheet-line"
+            type="text"
+            autocomplete="off"
+            spellcheck="false"
+            data-field="${definition.key}.meta.date"
+            aria-label="${escapeHtml(definition.label)} date"
+          >
+          <div class="market-sheet-top-rule"></div>
+        </div>
+
+        <div class="market-sheet-note">
+          <span class="market-sheet-note-icon">⚠️</span>${escapeHtml(MARKET_SHEET_NOTE)}
+        </div>
+
+        <table class="market-sheet-table">
+          <colgroup>
+            <col style="width: 58%">
+            <col style="width: 15%">
+            <col style="width: 27%">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>PRODUCT / ITEM DESCRIPTION</th>
+              <th>RATE (₹)</th>
+              <th>TERMS &amp; DISCOUNTS</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${definition.rows.map(renderMarketRow).join("")}
+          </tbody>
+        </table>
+
+        <div class="market-footer">
+          <input
+            class="market-footer-input"
+            type="text"
+            autocomplete="off"
+            spellcheck="false"
+            data-field="${definition.key}.meta.footer"
+            aria-label="${escapeHtml(definition.label)} footer"
+          >
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function renderMarketRow(row) {
+  if (row.kind === "group") {
+    return `
+      <tr class="market-group-row">
+        <td colspan="3">
+          <input
+            class="market-group-input"
+            type="text"
+            autocomplete="off"
+            spellcheck="false"
+            data-field="${row.field}"
+            aria-label="${escapeHtml(row.field)}"
+          >
+        </td>
+      </tr>
+    `;
+  }
+
+  return `
+    <tr>
+      <td>
+        <input
+          class="market-row-input"
+          type="text"
+          autocomplete="off"
+          spellcheck="false"
+          data-field="${row.descriptionField}"
+          aria-label="${escapeHtml(row.descriptionField)}"
+        >
+      </td>
+      <td class="market-rate-cell">
+        <input
+          class="market-row-input"
+          type="text"
+          autocomplete="off"
+          spellcheck="false"
+          data-field="${row.rateField}"
+          aria-label="${escapeHtml(row.rateField)}"
+        >
+      </td>
+      <td>
+        <input
+          class="market-row-input"
+          type="text"
+          autocomplete="off"
+          spellcheck="false"
+          data-field="${row.termsField}"
+          aria-label="${escapeHtml(row.termsField)}"
+        >
+      </td>
+    </tr>
   `;
 }
 
@@ -674,6 +971,9 @@ function renderCell(section, row, index, column) {
 }
 
 function bindToolbar() {
+  document.querySelectorAll("[data-sheet-key]").forEach((button) => {
+    button.addEventListener("click", () => switchSheet(button.dataset.sheetKey));
+  });
   document.querySelector('[data-action="today"]').addEventListener("click", applyToday);
   document.querySelector('[data-action="add-page"]').addEventListener("click", addPage);
   document.querySelector('[data-action="remove-page"]').addEventListener("click", removeLastPage);
@@ -702,6 +1002,13 @@ function bindToolbar() {
   window.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       closeProductCatalogEditor();
+    }
+  });
+  window.addEventListener("hashchange", () => {
+    const nextSheetKey = getSheetKeyFromHash();
+
+    if (nextSheetKey && nextSheetKey !== currentSheetKey) {
+      switchSheet(nextSheetKey);
     }
   });
 }
@@ -736,10 +1043,15 @@ function bindFieldEvents() {
 
 function applyToday() {
   const now = new Date();
-  const formattedDate = formatDate(now);
+  const formattedDate = isDailySheet() ? formatDate(now) : formatMarketDate(now);
+  const activeDateField = getActiveDateFieldName();
 
-  setFieldValue(DATE_FIELD, formattedDate);
-  syncDayWithDate(formattedDate);
+  setFieldValue(activeDateField, formattedDate);
+
+  if (isDailySheet()) {
+    syncDayWithDate(formattedDate);
+  }
+
   saveDraft();
   setStatus(`Date set to ${formattedDate}.`, "success");
 }
@@ -765,11 +1077,12 @@ function scheduleSave() {
 }
 
 function saveDraft() {
+  persistCurrentSheetState();
   const payload = {
-    values: collectFormValues(),
+    currentSheetKey,
+    sheetDrafts,
     productCatalog,
     customProducts: customProductCatalog,
-    extraPageCount,
     savedAt: new Date().toISOString(),
   };
 
@@ -788,11 +1101,12 @@ function loadDraft() {
   try {
     const payload = JSON.parse(raw);
     hydrateImportedProductState(payload);
-    extraPageCount = normalizeExtraPageCount(
-      payload.extraPageCount ?? inferExtraPageCount(payload.values || payload),
-    );
-    renderSheet(payload.values || payload);
-    syncDayWithDate(getFieldValue(DATE_FIELD));
+    hydrateDraftState(payload);
+    renderActiveSheet(getCurrentSheetState().values);
+
+    if (isDailySheet()) {
+      syncDayWithDate(getFieldValue(DATE_FIELD));
+    }
 
     if (payload.savedAt) {
       setStatus(`Saved draft restored from ${formatTime(payload.savedAt)}.`, "success");
@@ -814,26 +1128,30 @@ function clearDraft() {
     return;
   }
 
-  extraPageCount = 0;
-  renderSheet();
+  sheetDrafts = createDefaultSheetDrafts();
+  currentSheetKey = DAILY_SHEET_KEY;
+  extraPageCount = getCurrentSheetState().extraPageCount || 0;
+  renderActiveSheet();
   localStorage.removeItem(STORAGE_KEY);
   setStatus("Sheet cleared. You can start a new day now.", "success");
 }
 
 function exportDraft() {
+  persistCurrentSheetState();
   const payload = {
-    values: collectFormValues(),
+    currentSheetKey,
+    sheetDrafts,
     productCatalog,
     customProducts: customProductCatalog,
-    extraPageCount,
     exportedAt: new Date().toISOString(),
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
   const link = document.createElement("a");
-  const dateValue = sanitizeForFilename(getFieldValue(DATE_FIELD) || "draft");
+  const dateValue = sanitizeForFilename(getFieldValue(getActiveDateFieldName()) || "draft");
+  const sheetLabel = sanitizeForFilename(getSheetDefinition(currentSheetKey).label.toLowerCase());
 
   link.href = URL.createObjectURL(blob);
-  link.download = `daily-wages-report-${dateValue}.json`;
+  link.download = `${sheetLabel}-${dateValue}.json`;
   link.click();
   window.setTimeout(() => URL.revokeObjectURL(link.href), 0);
 
@@ -852,10 +1170,8 @@ async function importDraft(event) {
     const payload = JSON.parse(text);
 
     hydrateImportedProductState(payload);
-    extraPageCount = normalizeExtraPageCount(
-      payload.extraPageCount ?? inferExtraPageCount(payload.values || payload),
-    );
-    renderSheet(payload.values || payload);
+    hydrateDraftState(payload);
+    renderActiveSheet(getCurrentSheetState().values);
     saveDraft();
     setStatus(`Imported draft from ${file.name}.`, "success");
   } catch (error) {
@@ -873,14 +1189,23 @@ function collectFormValues() {
 }
 
 function addPage() {
+  if (!isDailySheet()) {
+    return;
+  }
+
   const values = collectFormValues();
   extraPageCount += 1;
-  renderSheet(values);
+  getCurrentSheetState().extraPageCount = extraPageCount;
+  renderActiveSheet(values);
   saveDraft();
   setStatus(`Added extra page ${extraPageCount}.`, "success");
 }
 
 function removeLastPage() {
+  if (!isDailySheet()) {
+    return;
+  }
+
   if (extraPageCount === 0) {
     setStatus("There are no extra pages to remove.", "error");
     return;
@@ -907,17 +1232,146 @@ function removeLastPage() {
     });
 
   extraPageCount -= 1;
-  renderSheet(values);
+  getCurrentSheetState().extraPageCount = extraPageCount;
+  renderActiveSheet(values);
   saveDraft();
   setStatus(`Removed extra page ${lastPageIndex}.`, "success");
 }
 
 function refreshPageControls() {
   const removeButton = document.querySelector('[data-action="remove-page"]');
+  const addButton = document.querySelector('[data-action="add-page"]');
+  const productTools = document.querySelector(".product-tools");
 
   if (removeButton) {
-    removeButton.disabled = extraPageCount === 0;
+    removeButton.disabled = !isDailySheet() || extraPageCount === 0;
+    removeButton.classList.toggle("hidden", !isDailySheet());
   }
+
+  if (addButton) {
+    addButton.classList.toggle("hidden", !isDailySheet());
+  }
+
+  if (productTools) {
+    productTools.classList.toggle("hidden", !isDailySheet());
+  }
+}
+
+function renderSheetSwitcher() {
+  document.querySelectorAll("[data-sheet-key]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.sheetKey === currentSheetKey);
+  });
+}
+
+function refreshWorkspaceChrome() {
+  const definition = getSheetDefinition(currentSheetKey);
+  const titleNode = document.getElementById("workspace-title");
+  const descriptionNode = document.getElementById("workspace-description");
+
+  if (titleNode) {
+    titleNode.textContent = definition.workspaceTitle;
+  }
+
+  if (descriptionNode) {
+    descriptionNode.textContent = definition.workspaceDescription;
+  }
+
+  renderSheetSwitcher();
+}
+
+function switchSheet(nextSheetKey) {
+  if (!nextSheetKey || nextSheetKey === currentSheetKey || !getSheetDefinition(nextSheetKey)) {
+    return;
+  }
+
+  persistCurrentSheetState();
+  currentSheetKey = nextSheetKey;
+  extraPageCount = getCurrentSheetState().extraPageCount || 0;
+  renderActiveSheet(getCurrentSheetState().values);
+  if (window.location.hash !== `#${nextSheetKey}`) {
+    window.location.hash = nextSheetKey;
+  }
+  setStatus(`${getSheetDefinition(nextSheetKey).label} opened.`, "success");
+}
+
+function isDailySheet() {
+  return currentSheetKey === DAILY_SHEET_KEY;
+}
+
+function getSheetDefinition(sheetKey) {
+  return sheetDefinitions.find((definition) => definition.key === sheetKey);
+}
+
+function getSheetKeyFromHash() {
+  const rawHash = window.location.hash.replace(/^#/, "");
+  return getSheetDefinition(rawHash)?.key || "";
+}
+
+function createDefaultSheetDrafts() {
+  return Object.fromEntries(
+    sheetDefinitions.map((definition) => [
+      definition.key,
+      {
+        values: { ...(definition.defaultValues || {}) },
+        extraPageCount: definition.key === DAILY_SHEET_KEY ? 0 : 0,
+      },
+    ]),
+  );
+}
+
+function getCurrentSheetState() {
+  sheetDrafts[currentSheetKey] ||= { values: {}, extraPageCount: 0 };
+  return sheetDrafts[currentSheetKey];
+}
+
+function persistCurrentSheetState() {
+  const state = getCurrentSheetState();
+  state.values = collectFormValues();
+
+  if (isDailySheet()) {
+    state.extraPageCount = extraPageCount;
+  }
+}
+
+function hydrateDraftState(payload) {
+  const defaults = createDefaultSheetDrafts();
+
+  if (payload.sheetDrafts) {
+    sheetDrafts = Object.fromEntries(
+      sheetDefinitions.map((definition) => {
+        const saved = payload.sheetDrafts[definition.key] || {};
+        return [
+          definition.key,
+          {
+            values: {
+              ...(definition.defaultValues || {}),
+              ...(saved.values || {}),
+            },
+            extraPageCount:
+              definition.key === DAILY_SHEET_KEY
+                ? normalizeExtraPageCount(saved.extraPageCount)
+                : 0,
+          },
+        ];
+      }),
+    );
+    currentSheetKey = getSheetDefinition(payload.currentSheetKey)?.key || DAILY_SHEET_KEY;
+  } else {
+    sheetDrafts = defaults;
+    sheetDrafts[DAILY_SHEET_KEY] = {
+      values: payload.values || payload,
+      extraPageCount: normalizeExtraPageCount(
+        payload.extraPageCount ?? inferExtraPageCount(payload.values || payload),
+      ),
+    };
+    currentSheetKey = DAILY_SHEET_KEY;
+  }
+
+  extraPageCount = getCurrentSheetState().extraPageCount || 0;
+}
+
+function getActiveDateFieldName() {
+  return isDailySheet() ? DATE_FIELD : `${currentSheetKey}.meta.date`;
 }
 
 function loadProductCatalog() {
@@ -1276,6 +1730,14 @@ function formatDate(date) {
   const year = date.getFullYear();
 
   return `${day}/${month}/${year}`;
+}
+
+function formatMarketDate(date) {
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+
+  return `${day} / ${month} / ${year}`;
 }
 
 function formatTime(rawIso) {

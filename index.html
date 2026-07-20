@@ -9,11 +9,26 @@
 <body>
   <header class="workspace-toolbar no-print">
     <div class="toolbar-copy">
-      <h1>Daily Wages &amp; Operations Report</h1>
-      <p>
+      <h1 id="workspace-title">Daily Wages &amp; Operations Report</h1>
+      <p id="workspace-description">
         Fill the shop sheet on screen, save the draft locally, and print the base
         report in two A4 pages. Add extra Chillar pages only when you need them.
       </p>
+    </div>
+
+    <div class="sheet-switcher" id="sheet-switcher">
+      <button type="button" class="sheet-switcher-button" data-sheet-key="daily">
+        Daily Sheet
+      </button>
+      <button type="button" class="sheet-switcher-button" data-sheet-key="grains">
+        Grains Rate Sheet
+      </button>
+      <button type="button" class="sheet-switcher-button" data-sheet-key="rice">
+        Rice Rate Sheet
+      </button>
+      <button type="button" class="sheet-switcher-button" data-sheet-key="turdal">
+        Turdal Rate Sheet
+      </button>
     </div>
 
     <div class="toolbar-actions">
