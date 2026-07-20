@@ -767,7 +767,7 @@ function renderMarketSheet(definition) {
         </div>
 
         <div class="market-sheet-note">
-          <span class="market-sheet-note-icon">⚠️</span>${escapeHtml(MARKET_SHEET_NOTE)}
+          ${escapeHtml(MARKET_SHEET_NOTE)}
         </div>
 
         <table class="market-sheet-table">
@@ -1401,7 +1401,16 @@ function getPdfShareCacheKey() {
 async function createPdfBlob() {
   const jsPdfConstructor = window.jspdf?.jsPDF;
 
-  if (typeof window.html2canvas !== "function" || !jsPdfConstructor) {
+  if (!jsPdfConstructor) {
+    throw new Error("PDF tools did not load");
+  }
+
+  // Trader rate sheets are drawn as a real A4 document, never as a phone screenshot.
+  if (!isDailySheet()) {
+    return createMarketPdfBlob(jsPdfConstructor);
+  }
+
+  if (typeof window.html2canvas !== "function") {
     throw new Error("PDF tools did not load");
   }
 
@@ -1444,6 +1453,172 @@ async function createPdfBlob() {
   } finally {
     document.body.classList.remove("is-pdf-export");
   }
+}
+
+function createMarketPdfBlob(jsPdfConstructor) {
+  const definition = getSheetDefinition(currentSheetKey);
+  const values = collectFormValues();
+  const pdf = new jsPdfConstructor({
+    orientation: "portrait",
+    unit: "mm",
+    format: "a4",
+    compress: true,
+  });
+  const table = {
+    left: 12,
+    width: 186,
+    descriptionWidth: 104,
+    rateWidth: 21,
+    termsWidth: 61,
+  };
+  let y = drawMarketPdfPageHeader(pdf, definition, values, table, false);
+
+  for (const row of getMarketRows(definition)) {
+    const rowContent = getMarketPdfRowContent(row, values);
+    const rowHeight = getMarketPdfRowHeight(pdf, rowContent, table);
+
+    if (y + rowHeight > 266) {
+      pdf.addPage("a4", "portrait");
+      y = drawMarketPdfPageHeader(pdf, definition, values, table, true);
+    }
+
+    drawMarketPdfRow(pdf, y, rowHeight, rowContent, table);
+    y += rowHeight;
+  }
+
+  const footer = getPdfFieldValue(values, `${definition.key}.meta.footer`);
+  const footerY = Math.min(Math.max(y + 9, 272), 286);
+
+  pdf.setDrawColor(17, 24, 39);
+  pdf.setLineDashPattern([2, 2], 0);
+  pdf.setLineWidth(0.7);
+  pdf.line(table.left, footerY, table.left + table.width, footerY);
+  pdf.setLineDashPattern([], 0);
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(9);
+  pdf.setTextColor(17, 24, 39);
+  pdf.text(footer, 105, footerY + 7, { align: "center" });
+
+  return pdf.output("blob");
+}
+
+function drawMarketPdfPageHeader(pdf, definition, values, table, isContinuation) {
+  let y = 13;
+  const title = isContinuation
+    ? `${definition.reportTitle} - CONTINUED`
+    : definition.reportTitle;
+
+  pdf.setTextColor(17, 24, 39);
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(isContinuation ? 13 : 16);
+  pdf.text(title, table.left, y);
+
+  if (!isContinuation) {
+    pdf.setFontSize(9.5);
+    pdf.text(getPdfFieldValue(values, `${definition.key}.meta.company`), table.left, y + 7);
+    pdf.text(getPdfFieldValue(values, `${definition.key}.meta.date`), table.left, y + 13);
+    pdf.setLineWidth(0.65);
+    pdf.line(table.left, y + 16, table.left + table.width, y + 16);
+
+    const noteY = y + 22;
+    pdf.setFillColor(243, 246, 251);
+    pdf.setDrawColor(17, 24, 39);
+    pdf.setLineWidth(0.45);
+    pdf.rect(table.left, noteY, table.width, 14, "FD");
+    pdf.setFontSize(8.3);
+    const noteLines = pdf.splitTextToSize(MARKET_SHEET_NOTE, table.width - 12);
+    const noteStartY = noteY + 5.6 - ((noteLines.length - 1) * 1.8);
+    pdf.text(noteLines, 105, noteStartY, { align: "center" });
+    y = noteY + 20;
+  } else {
+    y += 7;
+  }
+
+  drawMarketPdfTableHeader(pdf, y, table);
+  return y + 9;
+}
+
+function drawMarketPdfTableHeader(pdf, y, table) {
+  const rateX = table.left + table.descriptionWidth;
+  const termsX = rateX + table.rateWidth;
+
+  pdf.setFillColor(4, 4, 4);
+  pdf.rect(table.left, y, table.width, 9, "F");
+  pdf.setDrawColor(90, 90, 90);
+  pdf.setLineWidth(0.3);
+  pdf.line(rateX, y, rateX, y + 9);
+  pdf.line(termsX, y, termsX, y + 9);
+  pdf.setTextColor(255, 255, 255);
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(8.4);
+  pdf.text("PRODUCT / ITEM DESCRIPTION", table.left + 2.5, y + 5.7);
+  pdf.text("RATE (RS.)", rateX + (table.rateWidth / 2), y + 5.7, { align: "center" });
+  pdf.text("TERMS & DISCOUNTS", termsX + 2.5, y + 5.7);
+  pdf.setTextColor(17, 24, 39);
+}
+
+function getMarketPdfRowContent(row, values) {
+  if (row.kind === "group") {
+    return { kind: "group", description: getPdfFieldValue(values, row.field) };
+  }
+
+  return {
+    kind: "item",
+    description: getPdfFieldValue(values, row.descriptionField),
+    rate: getPdfFieldValue(values, row.rateField),
+    terms: getPdfFieldValue(values, row.termsField),
+  };
+}
+
+function getMarketPdfRowHeight(pdf, rowContent, table) {
+  if (rowContent.kind === "group") {
+    return 8;
+  }
+
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(8.1);
+  const descriptionLines = pdf.splitTextToSize(rowContent.description, table.descriptionWidth - 5);
+  pdf.setFontSize(7.6);
+  const termsLines = pdf.splitTextToSize(rowContent.terms, table.termsWidth - 5);
+  const lineCount = Math.max(descriptionLines.length, termsLines.length, 1);
+
+  return Math.max(8, 3.3 + (lineCount * 3.2));
+}
+
+function drawMarketPdfRow(pdf, y, height, rowContent, table) {
+  const rateX = table.left + table.descriptionWidth;
+  const termsX = rateX + table.rateWidth;
+
+  if (rowContent.kind === "group") {
+    pdf.setFillColor(219, 228, 240);
+    pdf.setDrawColor(17, 24, 39);
+    pdf.setLineWidth(0.55);
+    pdf.rect(table.left, y, table.width, height, "FD");
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(8.9);
+    pdf.setTextColor(17, 24, 39);
+    pdf.text(rowContent.description, table.left + 2.5, y + 5.2);
+    return;
+  }
+
+  pdf.setDrawColor(31, 41, 55);
+  pdf.setLineWidth(0.25);
+  pdf.line(table.left, y + height, table.left + table.width, y + height);
+  pdf.line(rateX, y, rateX, y + height);
+  pdf.line(termsX, y, termsX, y + height);
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(8.1);
+  const descriptionLines = pdf.splitTextToSize(rowContent.description, table.descriptionWidth - 5);
+  pdf.text(descriptionLines, table.left + 2.5, y + 4.6);
+  pdf.setFontSize(8);
+  pdf.text(rowContent.rate, termsX - 2, y + 4.6, { align: "right" });
+  pdf.setFontSize(7.6);
+  const termsLines = pdf.splitTextToSize(rowContent.terms, table.termsWidth - 5);
+  pdf.text(termsLines, termsX + 2.5, y + 4.4);
+}
+
+function getPdfFieldValue(values, fieldName) {
+  return String(values[fieldName] || "").trim().toUpperCase();
 }
 
 function getPdfRenderScale() {
@@ -1594,6 +1769,7 @@ function refreshPageControls() {
   const removeButton = document.querySelector('[data-action="remove-page"]');
   const addButton = document.querySelector('[data-action="add-page"]');
   const restoreRatesButton = document.querySelector('[data-action="restore-rates"]');
+  const shareButton = document.querySelector('[data-action="share-pdf"]');
   const productTools = document.querySelector(".product-tools");
 
   if (removeButton) {
@@ -1607,6 +1783,10 @@ function refreshPageControls() {
 
   if (restoreRatesButton) {
     restoreRatesButton.classList.toggle("hidden", isDailySheet());
+  }
+
+  if (shareButton) {
+    shareButton.classList.toggle("hidden", isDailySheet());
   }
 
   if (productTools) {
