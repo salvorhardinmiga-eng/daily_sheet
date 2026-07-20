@@ -654,6 +654,9 @@ let customProductCatalog = [];
 let productCatalog = [];
 let fieldMap = new Map();
 let saveTimer = null;
+let pdfShareCache = null;
+let pdfShareCacheTimer = null;
+let pdfShareCachePromise = null;
 
 function init() {
   loadProductCatalog();
@@ -708,6 +711,7 @@ function renderActiveSheet(values = getCurrentSheetState().values) {
   applyValues(isDailySheet() ? migrateLegacyValues(values) : values);
   refreshPageControls();
   refreshWorkspaceChrome();
+  queuePdfShareCache();
 }
 
 function renderPage(page) {
@@ -1039,6 +1043,7 @@ function bindToolbar() {
   document.querySelector('[data-action="today"]').addEventListener("click", applyToday);
   document.querySelector('[data-action="add-page"]').addEventListener("click", addPage);
   document.querySelector('[data-action="remove-page"]').addEventListener("click", removeLastPage);
+  document.querySelector('[data-action="restore-rates"]').addEventListener("click", restoreMarketDefaults);
   document.querySelector('[data-action="save"]').addEventListener("click", saveDraft);
   document.querySelector('[data-action="clear"]').addEventListener("click", clearDraft);
   document.querySelector('[data-action="export"]').addEventListener("click", exportDraft);
@@ -1148,6 +1153,7 @@ function syncDayWithDate(rawValue) {
 }
 
 function scheduleSave() {
+  queuePdfShareCache();
   window.clearTimeout(saveTimer);
   saveTimer = window.setTimeout(() => {
     saveDraft();
@@ -1214,6 +1220,29 @@ function clearDraft() {
   setStatus("Sheet cleared. You can start a new day now.", "success");
 }
 
+function restoreMarketDefaults() {
+  if (isDailySheet()) {
+    return;
+  }
+
+  const definition = getSheetDefinition(currentSheetKey);
+  const confirmed = window.confirm(
+    `Restore the bundled ${definition.label} rates? Any changes on this rate sheet will be replaced.`,
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  const state = getCurrentSheetState();
+  state.values = { ...(definition.defaultValues || {}) };
+  state.extraRowCount = 0;
+  state.companyExtraRows = {};
+  renderActiveSheet(state.values);
+  saveDraft();
+  setStatus(`${definition.label} defaults restored.`, "success");
+}
+
 function exportDraft() {
   persistCurrentSheetState();
   const payload = {
@@ -1246,9 +1275,16 @@ async function sharePdf() {
   saveDraft();
   shareButton.disabled = true;
   shareButton.textContent = "Making PDF...";
+  let pdfBlob;
 
   try {
-    const pdfBlob = await createPdfBlob();
+    const cacheKey = getPdfShareCacheKey();
+    pdfBlob = pdfShareCache?.key === cacheKey ? pdfShareCache.blob : null;
+
+    if (!pdfBlob) {
+      pdfBlob = await createPdfBlob();
+    }
+
     const dateValue = sanitizeForFilename(getFieldValue(getActiveDateFieldName()) || "report");
     const sheetLabel = sanitizeForFilename(getSheetDefinition(currentSheetKey).label.toLowerCase());
     const filename = `${sheetLabel}-${dateValue}.pdf`;
@@ -1266,11 +1302,7 @@ async function sharePdf() {
     }
 
     downloadBlob(pdfBlob, filename);
-    window.open(
-      `https://wa.me/?text=${encodeURIComponent(`${shareText}. The PDF has been downloaded; attach it to this message.`)}`,
-      "_blank",
-      "noopener",
-    );
+    openWhatsAppFallback(shareText);
     setStatus("PDF downloaded. Attach it in the WhatsApp message that just opened.", "success");
   } catch (error) {
     if (error?.name === "AbortError") {
@@ -1279,11 +1311,71 @@ async function sharePdf() {
     }
 
     console.error(error);
-    setStatus("The PDF could not be created. Check your internet connection and try again.", "error");
+
+    if (pdfBlob) {
+      const dateValue = sanitizeForFilename(getFieldValue(getActiveDateFieldName()) || "report");
+      const sheetLabel = sanitizeForFilename(getSheetDefinition(currentSheetKey).label.toLowerCase());
+
+      downloadBlob(pdfBlob, `${sheetLabel}-${dateValue}.pdf`);
+      openWhatsAppFallback(`${getSheetDefinition(currentSheetKey).label} for ${dateValue}`);
+      setStatus("Your phone blocked direct file sharing, so the PDF was downloaded for WhatsApp.", "success");
+      return;
+    }
+
+    setStatus("PDF sharing could not start. Browser print has opened as a backup.", "error");
+    window.print();
   } finally {
     shareButton.disabled = false;
     shareButton.textContent = "Share PDF / WhatsApp";
   }
+}
+
+function openWhatsAppFallback(shareText) {
+  window.open(
+    `https://wa.me/?text=${encodeURIComponent(`${shareText}. Attach the downloaded PDF to this message.`)}`,
+    "_blank",
+    "noopener",
+  );
+}
+
+function queuePdfShareCache() {
+  window.clearTimeout(pdfShareCacheTimer);
+  pdfShareCache = null;
+  pdfShareCacheTimer = window.setTimeout(() => {
+    primePdfShareCache();
+  }, 900);
+}
+
+async function primePdfShareCache() {
+  if (pdfShareCachePromise || !document.querySelector("#sheet-root .sheet-page")) {
+    return;
+  }
+
+  const cacheKey = getPdfShareCacheKey();
+
+  try {
+    pdfShareCachePromise = createPdfBlob();
+    const blob = await pdfShareCachePromise;
+
+    if (cacheKey === getPdfShareCacheKey()) {
+      pdfShareCache = { key: cacheKey, blob };
+    }
+  } catch (error) {
+    // The visible Share button still creates a PDF on demand if prebuilding fails.
+    console.warn("PDF prebuild failed", error);
+  } finally {
+    pdfShareCachePromise = null;
+  }
+}
+
+function getPdfShareCacheKey() {
+  return JSON.stringify({
+    sheet: currentSheetKey,
+    values: collectFormValues(),
+    extraPageCount: getCurrentSheetState().extraPageCount || 0,
+    extraRowCount: getCurrentSheetState().extraRowCount || 0,
+    companyExtraRows: getCurrentSheetState().companyExtraRows || {},
+  });
 }
 
 async function createPdfBlob() {
@@ -1476,6 +1568,7 @@ function removeCompanyMarketRow(groupField) {
 function refreshPageControls() {
   const removeButton = document.querySelector('[data-action="remove-page"]');
   const addButton = document.querySelector('[data-action="add-page"]');
+  const restoreRatesButton = document.querySelector('[data-action="restore-rates"]');
   const productTools = document.querySelector(".product-tools");
 
   if (removeButton) {
@@ -1485,6 +1578,10 @@ function refreshPageControls() {
 
   if (addButton) {
     addButton.classList.toggle("hidden", !isDailySheet());
+  }
+
+  if (restoreRatesButton) {
+    restoreRatesButton.classList.toggle("hidden", isDailySheet());
   }
 
   if (productTools) {
@@ -1585,10 +1682,7 @@ function hydrateDraftState(payload) {
         return [
           definition.key,
           {
-            values: {
-              ...(definition.defaultValues || {}),
-              ...(saved.values || {}),
-            },
+            values: getHydratedSheetValues(definition, saved.values),
             extraPageCount:
               definition.key === DAILY_SHEET_KEY
                 ? normalizeExtraPageCount(saved.extraPageCount)
@@ -1614,6 +1708,24 @@ function hydrateDraftState(payload) {
   }
 
   extraPageCount = getCurrentSheetState().extraPageCount || 0;
+}
+
+function getHydratedSheetValues(definition, savedValues) {
+  if (definition.key === DAILY_SHEET_KEY) {
+    return savedValues || {};
+  }
+
+  const values = savedValues || {};
+  const hasSavedContent = Object.values(values).some((value) => String(value).trim() !== "");
+
+  if (!hasSavedContent) {
+    return { ...(definition.defaultValues || {}) };
+  }
+
+  return {
+    ...(definition.defaultValues || {}),
+    ...values,
+  };
 }
 
 function getActiveDateFieldName() {
