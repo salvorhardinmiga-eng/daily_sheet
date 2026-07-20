@@ -671,8 +671,85 @@ label {
   }
 
   .sheet-stack {
-    align-items: flex-start;
+    align-items: center;
     padding: 0 8px;
+  }
+
+  .sheet-page {
+    width: min(100%, calc(100vw - 16px));
+    max-width: calc(100vw - 16px);
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .market-sheet-page {
+    padding: 6.5mm 6mm 8mm;
+  }
+
+  .market-sheet-layout {
+    gap: 4.5mm;
+  }
+
+  .market-sheet-title {
+    font-size: 12.5pt;
+  }
+
+  .market-sheet-line,
+  .market-footer-input {
+    font-size: 8pt;
+  }
+
+  .market-sheet-note {
+    padding: 3mm 3.2mm;
+    font-size: 6.8pt;
+  }
+
+  .market-sheet-table {
+    font-size: 6.9pt;
+  }
+
+  .market-sheet-table thead th {
+    padding: 2mm 1.8mm;
+    font-size: 6.8pt;
+  }
+
+  .market-group-input {
+    padding: 1.8mm 1.8mm;
+    font-size: 7.6pt;
+  }
+
+  .market-row-input {
+    padding: 2mm 1.8mm;
+    font-size: 6.9pt;
+  }
+
+  .sheet-title {
+    font-size: 12pt;
+  }
+
+  .meta-field {
+    font-size: 7.6pt;
+  }
+
+  .sheet-table {
+    font-size: 6.7pt;
+  }
+
+  .sheet-table thead th {
+    padding: 0.7mm 0.5mm;
+    font-size: 6.2pt;
+  }
+
+  .cell-input {
+    padding: 0 1mm;
+    font-size: 6.4pt;
+  }
+
+  .sr-cell,
+  .static-cell {
+    padding: 0 0.8mm;
+    font-size: 6.2pt;
   }
 
   .sheet-switcher {
