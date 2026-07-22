@@ -1535,7 +1535,7 @@ function drawMarketPdfPageHeader(pdf, definition, values, table, isContinuation)
   }
 
   drawMarketPdfTableHeader(pdf, y, table);
-  return y + 9;
+  return y + 10;
 }
 
 function drawMarketPdfTableHeader(pdf, y, table) {
@@ -1543,17 +1543,17 @@ function drawMarketPdfTableHeader(pdf, y, table) {
   const termsX = rateX + table.rateWidth;
 
   pdf.setFillColor(4, 4, 4);
-  pdf.rect(table.left, y, table.width, 9, "F");
+  pdf.rect(table.left, y, table.width, 10, "F");
   pdf.setDrawColor(90, 90, 90);
   pdf.setLineWidth(0.3);
-  pdf.line(rateX, y, rateX, y + 9);
-  pdf.line(termsX, y, termsX, y + 9);
+  pdf.line(rateX, y, rateX, y + 10);
+  pdf.line(termsX, y, termsX, y + 10);
   pdf.setTextColor(255, 255, 255);
   pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(8.4);
-  pdf.text("PRODUCT / ITEM DESCRIPTION", table.left + 2.5, y + 5.7);
-  pdf.text("RATE (RS.)", rateX + (table.rateWidth / 2), y + 5.7, { align: "center" });
-  pdf.text("TERMS & DISCOUNTS", termsX + 2.5, y + 5.7);
+  pdf.setFontSize(9.1);
+  pdf.text("PRODUCT / ITEM DESCRIPTION", table.left + 2.5, y + 6.3);
+  pdf.text("RATE (RS.)", rateX + (table.rateWidth / 2), y + 6.3, { align: "center" });
+  pdf.text("TERMS & DISCOUNTS", termsX + 2.5, y + 6.3);
   pdf.setTextColor(17, 24, 39);
 }
 
@@ -1572,17 +1572,17 @@ function getMarketPdfRowContent(row, values) {
 
 function getMarketPdfRowHeight(pdf, rowContent, table) {
   if (rowContent.kind === "group") {
-    return 8;
+    return 9.5;
   }
 
   pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(8.1);
+  pdf.setFontSize(9.2);
   const descriptionLines = pdf.splitTextToSize(rowContent.description, table.descriptionWidth - 5);
-  pdf.setFontSize(7.6);
+  pdf.setFontSize(8.5);
   const termsLines = pdf.splitTextToSize(rowContent.terms, table.termsWidth - 5);
   const lineCount = Math.max(descriptionLines.length, termsLines.length, 1);
 
-  return Math.max(8, 3.3 + (lineCount * 3.2));
+  return Math.max(10, 4.2 + (lineCount * 3.6));
 }
 
 function drawMarketPdfRow(pdf, y, height, rowContent, table) {
@@ -1595,9 +1595,9 @@ function drawMarketPdfRow(pdf, y, height, rowContent, table) {
     pdf.setLineWidth(0.55);
     pdf.rect(table.left, y, table.width, height, "FD");
     pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(8.9);
+    pdf.setFontSize(10.2);
     pdf.setTextColor(17, 24, 39);
-    pdf.text(rowContent.description, table.left + 2.5, y + 5.2);
+    pdf.text(rowContent.description, table.left + 2.5, y + 6.2);
     return;
   }
 
@@ -1607,14 +1607,19 @@ function drawMarketPdfRow(pdf, y, height, rowContent, table) {
   pdf.line(rateX, y, rateX, y + height);
   pdf.line(termsX, y, termsX, y + height);
   pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(8.1);
+  pdf.setFontSize(9.2);
   const descriptionLines = pdf.splitTextToSize(rowContent.description, table.descriptionWidth - 5);
-  pdf.text(descriptionLines, table.left + 2.5, y + 4.6);
-  pdf.setFontSize(8);
-  pdf.text(rowContent.rate, termsX - 2, y + 4.6, { align: "right" });
-  pdf.setFontSize(7.6);
+  const descriptionY = getMarketPdfTextY(y, height, descriptionLines.length);
+  pdf.text(descriptionLines, table.left + 2.5, descriptionY);
+  pdf.setFontSize(9);
+  pdf.text(rowContent.rate, termsX - 2, getMarketPdfTextY(y, height, 1), { align: "right" });
+  pdf.setFontSize(8.5);
   const termsLines = pdf.splitTextToSize(rowContent.terms, table.termsWidth - 5);
-  pdf.text(termsLines, termsX + 2.5, y + 4.4);
+  pdf.text(termsLines, termsX + 2.5, getMarketPdfTextY(y, height, termsLines.length));
+}
+
+function getMarketPdfTextY(y, height, lineCount) {
+  return y + ((height - ((lineCount - 1) * 3.6)) / 2) + 1.5;
 }
 
 function getPdfFieldValue(values, fieldName) {

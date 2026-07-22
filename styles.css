@@ -387,11 +387,11 @@ label {
 }
 
 .market-sheet-table thead th {
-  padding: 3.1mm 3.2mm;
+  padding: 3.6mm 3.2mm;
   border-right: 1px solid #303030;
   background: #040404;
   color: #fff;
-  font-size: 9.3pt;
+  font-size: 10pt;
   font-weight: 900;
   text-align: left;
   text-transform: uppercase;
@@ -431,8 +431,8 @@ label {
 .market-group-input {
   flex: 1 1 auto;
   min-width: 0;
-  padding: 2.7mm 3.2mm;
-  font-size: 10pt;
+  padding: 3.2mm 3.2mm;
+  font-size: 10.8pt;
   font-weight: 900;
 }
 
@@ -466,9 +466,9 @@ label {
 }
 
 .market-row-input {
-  padding: 2.9mm 3.2mm;
-  font-size: 9.2pt;
-  font-weight: 800;
+  padding: 3.5mm 3.2mm;
+  font-size: 10pt;
+  font-weight: 900;
 }
 
 .market-group-input:focus,
@@ -763,17 +763,17 @@ label {
   }
 
   .market-sheet-table {
-    font-size: 6.9pt;
+    font-size: 7.7pt;
   }
 
   .market-sheet-table thead th {
-    padding: 2mm 1.8mm;
-    font-size: 6.8pt;
+    padding: 2.4mm 1.8mm;
+    font-size: 7.7pt;
   }
 
   .market-group-input {
-    padding: 1.8mm 1.8mm;
-    font-size: 7.6pt;
+    padding: 2.2mm 1.8mm;
+    font-size: 8.5pt;
   }
 
   .market-group-content {
@@ -793,8 +793,9 @@ label {
   }
 
   .market-row-input {
-    padding: 2mm 1.8mm;
-    font-size: 6.9pt;
+    padding: 2.5mm 1.8mm;
+    font-size: 7.8pt;
+    font-weight: 900;
   }
 
   .sheet-title {
