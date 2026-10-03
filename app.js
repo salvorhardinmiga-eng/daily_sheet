@@ -337,14 +337,16 @@ const PRODUCT_CATALOG_SEED = [
 ];
 
 const attendanceNames = [
-  "JAYESH",
+  "JAYESH SETH",
   "PRATIK",
   "SOHEL",
   "AKASH",
-  "PANDITJI",
+  "PANDIT JI",
   "MAMA",
-  "MANISH",
-  "RAUBHAI",
+  "MAMI",
+  "SHERU BHAI",
+  "WASIM",
+  "",
 ];
 
 const chillerTableColumns = [
